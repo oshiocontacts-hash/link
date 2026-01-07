@@ -643,3 +643,139 @@ code{
   display:flex;
   justify-content:flex-end;
 }
+
+/* ==========================
+   Mobile polish
+   ========================== */
+
+/* iPhoneの文字自動拡大を抑える（崩れ防止） */
+html { -webkit-text-size-adjust: 100%; }
+
+/* タップ時のハイライトを少し上品に */
+a, button { -webkit-tap-highlight-color: rgba(15,122,58,.18); }
+
+/* 画面が狭い時：全体を1列に寄せる */
+@media (max-width: 720px){
+
+  :root{
+    --radius: 14px;
+  }
+
+  /* 上部ナビ：折り返しより“横スクロール”の方が綺麗 */
+  .topbar__inner{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 0;
+  }
+
+  .topnav{
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  .topnav::-webkit-scrollbar{ height: 6px; }
+  .topnav::-webkit-scrollbar-thumb{ background: rgba(15,122,58,.18); border-radius: 999px; }
+  .topnav__a{
+    white-space: nowrap;
+    flex: 0 0 auto;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  /* セクション余白を少し詰める */
+  .section{ padding: 14px 0; }
+  .section__title{ font-size: 13px; }
+
+  /* PROFILE：2列→1列に */
+  .profile{
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .profile__left{
+    display:flex;
+    justify-content:center;
+  }
+  .avatar{
+    width: 88px;
+    height: 88px;
+    border-radius: 16px;
+  }
+  .profile__name{ font-size: 18px; }
+  .metaRow{ grid-template-columns: 64px 1fr; }
+
+  /* LINK：2列→1列に */
+  .linkGrid{
+    grid-template-columns: 1fr;
+  }
+  .linkCard{
+    padding: 12px 12px;
+  }
+  .linkCard__icon{
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+  }
+
+  /* GROUPリンク：2列→1列に */
+  .group__links{
+    grid-template-columns: 1fr;
+  }
+
+  /* PHOTO：カード幅をスマホ向けに */
+  .photo__bar{
+    align-items: flex-start;
+  }
+  .photo__controls .btn{
+    min-width: 40px;
+    padding: 0 10px;
+  }
+
+  /* 写真カード（JSで作ってる .photoCard ）が3枚表示前提ならスマホでは2→1へ */
+  .photoCard{
+    flex: 0 0 calc((100% - 10px) / 2); /* 2枚表示 */
+    scroll-snap-align: start;
+  }
+}
+
+/* さらに狭い：1枚表示に */
+@media (max-width: 420px){
+  .photoCard{
+    flex: 0 0 100%;
+  }
+}
+
+/* カレンダー：スマホで詰めて押しやすく */
+@media (max-width: 720px){
+  .calendar__dow > div{
+    font-size: 11px;
+    padding: 6px 0;
+  }
+
+  .dayCell{
+    min-height: 72px;
+    padding: 6px 6px 8px;
+  }
+
+  .dayCell__num{
+    font-size: 11px;
+  }
+
+  .evIcon{
+    width: 28px;   /* 指で押しやすいサイズ */
+    height: 28px;
+    border-radius: 10px;
+  }
+  .evIcon svg{
+    width: 16px;
+    height: 16px;
+  }
+
+  /* モーダル：スマホは下寄せ＆幅いっぱい気味 */
+  .modal__panel{
+    width: min(560px, calc(100% - 16px));
+    margin: 10vh auto 0;
+  }
+}
