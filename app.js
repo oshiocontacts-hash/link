@@ -84,14 +84,50 @@ function scrollCarouselByOne(track, direction) {
   track.scrollBy({ left: delta, behavior: "smooth" });
 }
 
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t ^= t + Math.imul(t ^ t >>> 7, 61 | t);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleWithSeed(arr, seed) {
+  const a = [...arr];
+  const rnd = mulberry32(seed);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function timeBucketSeed() {
+  // 0: 朝(5-10), 1: 昼(11-16), 2: 夜(17-4)
+  const h = new Date().getHours();
+  const bucket = (h >= 5 && h <= 10) ? 0 : (h >= 11 && h <= 16) ? 1 : 2;
+
+  // 日付も混ぜると、同じ時間帯でも毎日変わる
+  const d = new Date();
+  const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+  const dateSeed = y * 10000 + m * 100 + day;
+
+  return dateSeed * 10 + bucket;
+}
+
+
 async function initPhoto() {
   const track = $("#photoTrack");
   if (!track) return;
 
   try {
     const items = await fetchJson("data/photos.json");
+    const seed = timeBucketSeed();                 // 時間帯＋日付で固定シード
+    const ordered = shuffleWithSeed(items, seed);  // そのシードでシャッフル
     track.innerHTML = "";
-    for (const it of items) track.appendChild(buildPhotoCard(it));
+for (const it of ordered) track.appendChild(buildPhotoCard(it));
+
   } catch (e) {
     track.innerHTML = `<div class="photo__loading">photos.json が読み込めませんでした。</div>`;
   }
@@ -101,6 +137,44 @@ async function initPhoto() {
 
   prev?.addEventListener("click", () => scrollCarouselByOne(track, -1));
   next?.addEventListener("click", () => scrollCarouselByOne(track, 1));
+
+    // --- Auto slide (10s) ---
+  const AUTO_MS = 10_000;
+  let autoTimer = null;
+
+  function startAuto() {
+    stopAuto();
+    autoTimer = setInterval(() => scrollCarouselByOne(track, 1), AUTO_MS);
+  }
+  function stopAuto() {
+    if (autoTimer) clearInterval(autoTimer);
+    autoTimer = null;
+  }
+
+  // ユーザー操作中は止める（触ったらストレスなので）
+  const pause = () => stopAuto();
+  const resume = () => startAuto();
+
+  track.addEventListener("pointerdown", pause);
+  track.addEventListener("mouseenter", pause);
+  track.addEventListener("mouseleave", resume);
+
+  // スクロール（ホイール/スワイプ）したら一旦停止→数秒後再開
+  let resumeTimeout = null;
+  track.addEventListener("scroll", () => {
+    pause();
+    if (resumeTimeout) clearTimeout(resumeTimeout);
+    resumeTimeout = setTimeout(resume, 2500);
+  }, { passive: true });
+
+  // タブ非表示中は止める
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopAuto();
+    else startAuto();
+  });
+
+  startAuto();
+
 }
 
 /* ==========================
