@@ -377,6 +377,230 @@ async function initSchedule() {
   render();
 }
 
+
+
+/* ==========================
+   RL GAME (Q-learning demo)
+========================== */
+function initRlGame() {
+  const arena = $("#rlArena");
+  const trainBtn = $("#rlTrainBtn");
+  const resetBtn = $("#rlResetBtn");
+  const epInput = $("#rlEpisodes");
+  const trainStatus = $("#rlTrainStatus");
+  const pScoreEl = $("#rlPlayerScore");
+  const aiScoreEl = $("#rlAiScore");
+  const roundEl = $("#rlRound");
+  const actionBtns = [...document.querySelectorAll("[data-rl-action]")];
+
+  if (!arena || !trainBtn || !resetBtn || !epInput || !trainStatus) return;
+
+  const laneSize = 7;
+  const maxRounds = 20;
+  const ACTIONS = [-1, 0, 1];
+  const qTable = new Map();
+
+  const state = {
+    playerPos: 0,
+    aiPos: laneSize - 1,
+    goal: 3,
+    playerScore: 0,
+    aiScore: 0,
+    round: 1,
+    trained: false,
+    log: "まずはAIを学習してみよう。",
+  };
+
+  const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
+  const keyOf = (ap, gp) => `${ap}|${gp}`;
+
+  function getQs(ap, gp) {
+    const k = keyOf(ap, gp);
+    if (!qTable.has(k)) qTable.set(k, [0, 0, 0]);
+    return qTable.get(k);
+  }
+
+  function chooseAction(ap, gp, epsilon = 0) {
+    if (Math.random() < epsilon) return ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+    const qs = getQs(ap, gp);
+    const maxQ = Math.max(...qs);
+    const best = ACTIONS.filter((_, i) => qs[i] === maxQ);
+    return best[Math.floor(Math.random() * best.length)];
+  }
+
+  function reward(aiPos, playerPos, goal) {
+    if (aiPos === goal && playerPos !== goal) return 2;
+    if (playerPos === goal && aiPos !== goal) return -2;
+    const dAi = Math.abs(aiPos - goal);
+    const dPlayer = Math.abs(playerPos - goal);
+    return (dPlayer - dAi) * 0.08;
+  }
+
+  function train(episodes) {
+    qTable.clear();
+    const alpha = 0.18;
+    const gamma = 0.92;
+
+    for (let ep = 0; ep < episodes; ep++) {
+      let aiPos = laneSize - 1;
+      let playerPos = 0;
+      let goal = 1 + Math.floor(Math.random() * (laneSize - 2));
+      let epsilon = Math.max(0.02, 0.25 - ep / episodes * 0.22);
+
+      for (let t = 0; t < 10; t++) {
+        const action = chooseAction(aiPos, goal, epsilon);
+        const actIdx = ACTIONS.indexOf(action);
+
+        const playerAction = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+        const nextAi = clamp(aiPos + action, 0, laneSize - 1);
+        const nextPlayer = clamp(playerPos + playerAction, 0, laneSize - 1);
+
+        const r = reward(nextAi, nextPlayer, goal);
+
+        const qs = getQs(aiPos, goal);
+        const nextQs = getQs(nextAi, goal);
+        const tdTarget = r + gamma * Math.max(...nextQs);
+        qs[actIdx] = qs[actIdx] + alpha * (tdTarget - qs[actIdx]);
+
+        aiPos = nextAi;
+        playerPos = nextPlayer;
+
+        if (aiPos === goal || playerPos === goal) break;
+      }
+    }
+
+    state.trained = true;
+    trainStatus.textContent = `学習済み (${episodes.toLocaleString()} episodes)`;
+  }
+
+  function render() {
+    const lane = document.createElement("div");
+    lane.className = "rlLane";
+
+    for (let i = 0; i < laneSize; i++) {
+      const cell = document.createElement("div");
+      cell.className = "rlCell";
+      if (i === state.goal) {
+        cell.classList.add("rlCell--goal");
+        cell.textContent = "⚡";
+      }
+      if (i === state.playerPos) {
+        cell.classList.add("rlCell--player");
+        cell.textContent += "🙂";
+      }
+      if (i === state.aiPos) {
+        cell.classList.add("rlCell--ai");
+        cell.textContent += "🤖";
+      }
+      lane.appendChild(cell);
+    }
+
+    arena.innerHTML = "";
+    arena.appendChild(lane);
+
+    const log = document.createElement("p");
+    log.className = "rlLog";
+    log.textContent = state.log;
+    arena.appendChild(log);
+
+    pScoreEl.textContent = String(state.playerScore);
+    aiScoreEl.textContent = String(state.aiScore);
+    roundEl.textContent = `${state.round} / ${maxRounds}`;
+  }
+
+  function nextRound() {
+    state.round += 1;
+    if (state.round > maxRounds) {
+      if (state.playerScore > state.aiScore) state.log = "あなたの勝ち！AIをさらに学習して再戦しよう。";
+      else if (state.playerScore < state.aiScore) state.log = "AIの勝ち！エピソード数を増やして進化を観察しよう。";
+      else state.log = "引き分け！次は学習回数を変えて比較してみよう。";
+      actionBtns.forEach((b) => (b.disabled = true));
+      state.round = maxRounds;
+      render();
+      return false;
+    }
+
+    state.playerPos = 0;
+    state.aiPos = laneSize - 1;
+    state.goal = 1 + Math.floor(Math.random() * (laneSize - 2));
+    return true;
+  }
+
+  function judgeRound() {
+    if (state.playerPos === state.goal && state.aiPos === state.goal) {
+      state.playerScore += 1;
+      state.aiScore += 1;
+      state.log = "同時到達！両者に1点。";
+      return true;
+    }
+    if (state.playerPos === state.goal) {
+      state.playerScore += 1;
+      state.log = "プレイヤー先取！+1点";
+      return true;
+    }
+    if (state.aiPos === state.goal) {
+      state.aiScore += 1;
+      state.log = "AI先取！+1点";
+      return true;
+    }
+    return false;
+  }
+
+  function playerStep(playerAction) {
+    if (!state.trained) {
+      state.log = "先にAI学習を実行してね。";
+      render();
+      return;
+    }
+
+    state.playerPos = clamp(state.playerPos + playerAction, 0, laneSize - 1);
+    const aiAction = chooseAction(state.aiPos, state.goal, 0);
+    state.aiPos = clamp(state.aiPos + aiAction, 0, laneSize - 1);
+
+    if (judgeRound()) {
+      render();
+      setTimeout(() => {
+        if (nextRound()) {
+          state.log = `Round ${state.round}: エネルギーを先に取ろう。`;
+          render();
+        }
+      }, 420);
+      return;
+    }
+
+    state.log = `あなた:${state.playerPos} / AI:${state.aiPos} / 目標:${state.goal}`;
+    render();
+  }
+
+  trainBtn.addEventListener("click", () => {
+    const episodes = clamp(Number(epInput.value) || 4000, 200, 30000);
+    epInput.value = String(episodes);
+    trainStatus.textContent = "学習中...";
+    setTimeout(() => {
+      train(episodes);
+      state.log = "学習完了！ボタンで行動してAIと勝負。";
+      resetGame();
+    }, 30);
+  });
+
+  function resetGame() {
+    state.playerPos = 0;
+    state.aiPos = laneSize - 1;
+    state.goal = 1 + Math.floor(Math.random() * (laneSize - 2));
+    state.playerScore = 0;
+    state.aiScore = 0;
+    state.round = 1;
+    state.log = state.trained ? "Round 1: エネルギーを先に取ろう。" : "まずはAIを学習してみよう。";
+    actionBtns.forEach((b) => (b.disabled = false));
+    render();
+  }
+
+  resetBtn.addEventListener("click", resetGame);
+  actionBtns.forEach((btn) => btn.addEventListener("click", () => playerStep(Number(btn.dataset.rlAction))));
+
+  render();
+}
+
 /* ==========================
    Boot
 ========================== */
@@ -385,4 +609,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initModal();
   initPhoto();
   initSchedule();
+  initRlGame();
 });

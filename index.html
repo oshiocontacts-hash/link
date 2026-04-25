@@ -23,6 +23,7 @@
         <a class="topnav__a" href="#group">GROUP</a>
         <a class="topnav__a" href="#photo">PHOTO</a>
         <a class="topnav__a" href="#schedule">SCHEDULE</a>
+        <a class="topnav__a" href="#rlgame">RL GAME</a>
       </nav>
     </div>
   </header>
@@ -283,6 +284,44 @@
     </div>
   </div>
 </div>
+
+    <section id="rlgame" class="section">
+      <h2 class="section__title">RL GAME</h2>
+      <div class="card rlGame">
+        <p class="rlGame__lead">
+          1ライン上の「エネルギー」を取り合うゲームです。右/左/待機で移動し、先に到達すると得点。
+          AIはQ学習で事前に自己対戦し、学習後にあなたと対戦します。
+        </p>
+
+        <div class="rlGame__controls">
+          <label class="rlGame__label">学習エピソード
+            <input id="rlEpisodes" class="rlGame__input" type="number" min="200" max="30000" step="100" value="4000" />
+          </label>
+          <button class="btn" id="rlTrainBtn" type="button">AIを学習</button>
+          <button class="btn" id="rlResetBtn" type="button">対戦をリセット</button>
+        </div>
+
+        <div class="rlGame__arena" id="rlArena" aria-live="polite"></div>
+
+        <div class="rlGame__actions">
+          <button class="btn" data-rl-action="-1" type="button">← 左</button>
+          <button class="btn" data-rl-action="0" type="button">・ 待機</button>
+          <button class="btn" data-rl-action="1" type="button">右 →</button>
+        </div>
+
+        <div class="rlGame__stats">
+          <div>学習状態: <strong id="rlTrainStatus">未学習</strong></div>
+          <div>プレイヤー: <strong id="rlPlayerScore">0</strong></div>
+          <div>AI: <strong id="rlAiScore">0</strong></div>
+          <div>ラウンド: <strong id="rlRound">1 / 20</strong></div>
+        </div>
+
+        <p class="smallNote">
+          コツ: 学習回数を増やすほどAIの判断が安定します。まずは4,000〜8,000で試すのがおすすめ。
+        </p>
+      </div>
+    </section>
+
     <footer class="footer">
       <span>© 2026 おしお</span>
       <span class="footer__sep">|</span>
