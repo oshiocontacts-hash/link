@@ -819,3 +819,24 @@ a, button { -webkit-tap-highlight-color: rgba(15,122,58,.18); }
   text-decoration-color: rgba(15,122,58,.35);
   color: var(--green);
 }
+
+/* RL GAME */
+.rlGame{ padding:14px; display:grid; gap:12px; }
+.rlGame__lead{ margin:0; font-size:13px; color:var(--muted); line-height:1.7; }
+.rlGame__controls{ display:flex; flex-wrap:wrap; gap:8px; align-items:end; }
+.rlGame__label{ font-size:12px; color:var(--muted); display:grid; gap:4px; }
+.rlGame__input{ border:1px solid var(--line); border-radius:10px; padding:8px 10px; min-width:120px; }
+.rlGame__arena{ border:1px solid var(--line2); border-radius:14px; background:rgba(15,122,58,.02); padding:10px; display:grid; gap:8px; }
+.rlLane{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; }
+.rlCell{ border:1px solid var(--line2); border-radius:10px; min-height:38px; display:grid; place-items:center; font-size:18px; background:#fff; }
+.rlCell--player{ outline:2px solid #2f8bff; }
+.rlCell--ai{ outline:2px solid #e14a4a; }
+.rlCell--goal{ background:#fffbe8; }
+.rlGame__actions{ display:flex; gap:8px; flex-wrap:wrap; }
+.rlGame__stats{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; font-size:13px; }
+.rlGame__stats > div{ border:1px solid var(--line2); border-radius:10px; padding:8px; background:#fff; }
+.rlLog{ margin:0; font-size:12px; color:var(--ink); }
+
+@media (max-width:720px){
+  .rlGame__stats{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
