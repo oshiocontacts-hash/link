@@ -225,6 +225,14 @@ code{
 }
 .linkCard__arrow{ color: var(--muted); }
 
+.linkCard--line .linkCard__icon{
+  background: rgba(6,199,85,.14);
+  border-color: rgba(6,199,85,.35);
+}
+.linkCard--line .linkCard__icon svg{
+  fill: #06c755;
+}
+
 /* GROUP */
 .group{ padding: 12px; }
 
