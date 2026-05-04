@@ -1,0 +1,49 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "sqlite" url = env("DATABASE_URL") }
+model Game {
+  id String @id @default(uuid())
+  twitchGameId String @unique
+  name String
+  boxArtUrl String?
+  igdbId String?
+  firstSeenAt DateTime
+  lastSeenAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  metrics GameSnapshotMetric[]
+}
+model Snapshot {
+  id String @id @default(uuid())
+  capturedAtUtc DateTime
+  capturedHourUtc DateTime
+  language String
+  source String
+  maxPages Int
+  fetchedStreamCount Int
+  uniqueStreamCount Int
+  aggregatedGameCount Int
+  createdAt DateTime @default(now())
+  metrics GameSnapshotMetric[]
+  @@index([capturedAtUtc])
+  @@index([capturedHourUtc])
+  @@index([language])
+  @@unique([capturedHourUtc, language, source])
+}
+model GameSnapshotMetric {
+  id String @id @default(uuid())
+  snapshotId String
+  gameId String
+  rank Int
+  viewerCount Int
+  streamCount Int
+  sampledStreamCount Int
+  peakStreamViewerCount Int?
+  topStreamersJson String?
+  createdAt DateTime @default(now())
+  snapshot Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  @@unique([snapshotId, gameId])
+  @@index([rank])
+  @@index([viewerCount])
+  @@index([gameId])
+}

@@ -1,0 +1,4 @@
+import { NextRequest, NextResponse } from "next/server";import { getDashboardData } from "@/lib/dashboard-query";import { toCsv } from "@/lib/csv";
+export async function GET(req:NextRequest){const p=req.nextUrl.searchParams;const d=await getDashboardData({date:p.get("date")??new Date().toISOString().slice(0,10),language:p.get("language")??"all",topN:Number(p.get("topN")??20),timezone:p.get("timezone")??"Asia/Tokyo"});
+const rows=d.metrics.map(m=>({game_name:d.games.find(g=>g.id===m.gameId)?.name??"",twitch_game_id:d.games.find(g=>g.id===m.gameId)?.twitchGameId??"",hour:m.hourKey,rank:m.rank,viewer_count:m.viewerCount,stream_count:m.streamCount,rank_delta:m.rankDeltaFromPreviousHour,viewer_delta:m.viewerDeltaFromPreviousHour}));
+return new NextResponse(toCsv(rows),{headers:{"content-type":"text/csv; charset=utf-8"}})}

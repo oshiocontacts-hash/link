@@ -1,0 +1,1 @@
+export const toCsv=(rows:Record<string,string|number|null>[])=>{if(!rows.length)return "";const h=Object.keys(rows[0]);return [h.join(","),...rows.map(r=>h.map(k=>JSON.stringify(r[k]??"")).join(","))].join("\n")};
