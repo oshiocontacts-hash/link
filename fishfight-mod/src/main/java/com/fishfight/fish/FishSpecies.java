@@ -12,7 +12,7 @@ public enum FishSpecies implements StringRepresentable {
 	//        id            habitat         weight color     cm min/max  kg係数 hp  atk def spd crit 難易度 表示倍率  体の比率(幅,高さ,長さ)
 	CARP("carp", Habitat.FRESH, 30f, 0xD9822B, 30, 90, 12f, 80, 14, 14, 10, 5, 0.9f, 0.8f, 1.0f, 1.0f, 1.1f),
 	MACKEREL("mackerel", Habitat.OCEAN, 30f, 0x4A7FB0, 25, 50, 10f, 60, 13, 9, 20, 8, 0.8f, 0.65f, 0.8f, 0.8f, 1.1f),
-	PUFFERFISH("pufferfish", Habitat.OCEAN, 18f, 0xE8D35A, 15, 45, 25f, 70, 10, 22, 8, 5, 1.0f, 0.7f, 1.5f, 1.4f, 0.85f),
+	PUFFERFISH("pufferfish", Habitat.OCEAN, 18f, 0xE8D35A, 15, 45, 25f, 85, 13, 22, 8, 5, 1.0f, 0.7f, 1.5f, 1.4f, 0.85f),
 	PIRANHA("piranha", Habitat.FRESH, 16f, 0xB54646, 15, 40, 22f, 50, 22, 8, 18, 12, 1.2f, 0.6f, 0.9f, 1.15f, 0.8f),
 	CATFISH("catfish", Habitat.FRESH, 14f, 0x6B5B45, 50, 150, 12f, 100, 16, 16, 7, 5, 1.1f, 0.95f, 1.25f, 0.8f, 1.4f),
 	TUNA("tuna", Habitat.OCEAN, 12f, 0x2E3F66, 100, 300, 50f, 110, 18, 14, 16, 6, 1.4f, 1.1f, 1.3f, 1.2f, 1.5f),

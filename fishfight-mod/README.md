@@ -65,5 +65,7 @@
 ./gradlew build
 ```
 
+ビルドには **JDK 25** が必要です（Fabric Loom 1.19 の要件。出来上がる jar は Java 21 で動きます）。
+
 `build/libs/fishfight-1.0.0.jar` を `mods` フォルダに入れてください（Fabric API も必要）。
 GitHub に push すると Actions が自動でビルドし、jar を Artifacts からダウンロードできます。
