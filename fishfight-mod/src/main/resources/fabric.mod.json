@@ -1,0 +1,30 @@
+{
+	"schemaVersion": 1,
+	"id": "fishfight",
+	"version": "${version}",
+	"name": "Fish Fight! 釣りバトル",
+	"description": "ミニゲームで魚を釣り上げ、個体ごとに違うステータスを持つ魚同士でプレイヤー対戦！ときどき魚から腕が生える。",
+	"authors": [
+		"oshiocontacts-hash"
+	],
+	"license": "MIT",
+	"icon": "assets/fishfight/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.fishfight.FishFight"
+		],
+		"client": [
+			"com.fishfight.client.FishFightClient"
+		]
+	},
+	"mixins": [
+		"fishfight.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
