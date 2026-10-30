@@ -1,0 +1,15 @@
+{
+  "hit":           {"sounds": [{"name": "minecraft:entity.arrow.hit_player", "type": "event"}]},
+  "kill":          {"sounds": [{"name": "minecraft:block.note_block.bell", "type": "event"}]},
+  "blink":         {"sounds": [{"name": "minecraft:entity.illusioner.mirror_move", "type": "event"}]},
+  "windup":        {"sounds": [{"name": "minecraft:item.crossbow.loading_middle", "type": "event"}]},
+  "slash":         {"sounds": [{"name": "minecraft:entity.player.attack.sweep", "type": "event"}]},
+  "parry":         {"sounds": [{"name": "minecraft:item.shield.block", "type": "event"}]},
+  "parry_success": {"sounds": [{"name": "minecraft:block.bell.use", "type": "event"}]},
+  "last_stand":    {"sounds": [{"name": "minecraft:item.totem.use", "type": "event"}]},
+  "slowmo":        {"sounds": [{"name": "minecraft:block.beacon.deactivate", "type": "event"}]},
+  "beat":          {"sounds": [{"name": "minecraft:block.note_block.hat", "type": "event"}]},
+  "rank_up":       {"sounds": [{"name": "minecraft:entity.player.levelup", "type": "event"}]},
+  "round_start":   {"sounds": [{"name": "minecraft:block.end_portal_frame.fill", "type": "event"}]},
+  "round_end":     {"sounds": [{"name": "minecraft:ui.toast.challenge_complete", "type": "event"}]}
+}

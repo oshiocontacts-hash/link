@@ -2,6 +2,10 @@ plugins {
     id 'java-library'
 }
 
+base {
+    archivesName = 'neonclash-core'
+}
+
 group = 'com.neonclash'
 version = rootProject.property('mod_version')
 
