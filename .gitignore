@@ -1,0 +1,7 @@
+neonclash/.gradle/
+neonclash/build/
+neonclash/*/build/
+neonclash/mod/run/
+neonclash/mod/libs/*.jar
+*.iml
+.idea/

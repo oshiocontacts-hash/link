@@ -1,0 +1,21 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            name = 'MinecraftForge'
+            url = 'https://maven.minecraftforge.net/'
+        }
+    }
+}
+
+rootProject.name = 'neonclash'
+
+// core: Minecraft に依存しない純粋なゲームロジック（JUnit 5 でテスト）
+include 'core'
+
+// mod: Forge 1.20.1 + TaCZ 連携。-Pneonclash.coreOnly=true で除外できる
+// （Forge Maven / Mojang に到達できない環境で core だけをビルド・テストするため）
+def coreOnly = providers.gradleProperty('neonclash.coreOnly').map { it.toBoolean() }.getOrElse(false)
+if (!coreOnly) {
+    include 'mod'
+}

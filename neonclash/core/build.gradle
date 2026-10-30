@@ -1,0 +1,37 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'com.neonclash'
+version = rootProject.property('mod_version')
+
+java {
+    // Minecraft 1.20.1 は Java 17。どの JDK でビルドしても 17 のバイトコードを出す
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+repositories {
+    // Maven Central。repo.maven.apache.org が 429（レート制限）を返すことがあるため、同じ中身の repo1 を先に見る
+    maven { url = 'https://repo1.maven.org/maven2/' }
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+    defaultCharacterEncoding = 'UTF-8'
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat 'full'
+    }
+}
