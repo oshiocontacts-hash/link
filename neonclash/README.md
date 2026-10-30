@@ -87,6 +87,32 @@ java -Djava.awt.headless=true -cp core/build/libs/neonclash-core-0.1.0.jar:build
 
 実機映像ではなく、core の判定（ブリンク・剣の溜め・ビート・スタイル・ラウンド・強化抽選）を 2D 俯瞰で動かしたものです。終了時に集計を標準出力へ出します。
 
+### 実機デモの録画（GitHub Actions）
+
+`.github/workflows/neonclash-demo.yml` が、`claude/neonclash-pvp-mod` への push で次を行います。
+
+1. TaCZ の Forge 1.20.1 版を Modrinth から取得（`ci/fetch_tacz.py`）→ `./gradlew build`
+2. Xvfb + Mesa（`LIBGL_ALWAYS_SOFTWARE=1`）で `./gradlew :mod:runClient -Pneonclash.demo=true` を起動。
+   `-Dneonclash.demo=true` のときだけ動く `DemoDriver` が、ワールド作成 → コマンドでアリーナを作って `/pvp practice 2`（Husk 2 体と練習試合）
+   → 照準・射撃・ブリンク・剣・パリィ・強化選択を自動で操作 → 終了、まで行います
+3. 画面は `Screenshot.takeScreenshot(mc.getMainRenderTarget())` で `run/demo_frames/` に連番 PNG（実時間 10fps）で保存し、ffmpeg で動画に
+4. BGM を `ci/groove.py` で合成し、`demo_beat.json`（録画開始時のビートの位相）でゲーム内の拍に合わせて付ける
+5. `runGameTestServer` も実行
+6. 動画・ログ・jar を `neonclash-demo-media` ブランチと Artifacts に置く
+
+### BGM（`ci/groove.py`）
+
+numpy + scipy だけで合成するグルーヴ系の曲です（外部音源なし）。
+128 BPM（mod のビート既定値と同じ）・F マイナー、コード進行は | Fm9 | D♭maj9 | A♭maj7 | E♭6/9 | の 4 小節ループ。
+四つ打ちキック・2/4 拍のクラップ・スウィングした 16 分ハット・裏拍のオープンハット・シンコペーションするベース（＋サブ）・裏拍のコードスタブ・
+スーパーソウのパッド・ピンポンディレイのアルペジオ・リード・スネアロール・ライザー・インパクト、キックによるサイドチェイン。
+構成は Intro → Groove → Build → Drop → Breakdown → Drop 2 → Outro で、動画の長さに合わせて伸縮します。
+
+```bash
+python3 ci/groove.py --duration 90 --out bgm.wav                       # 0 秒目が小節の頭
+python3 ci/groove.py --duration 90 --beat-json run/demo_beat.json --out bgm.wav   # ゲーム内の拍に合わせる
+```
+
 ### ビルド
 
 ```bash

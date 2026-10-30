@@ -20,19 +20,26 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Husk;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
  * /pvp start | stop | team &lt;player&gt; &lt;red|blue&gt; | arena set
- * （おまけ: /pvp choose &lt;1..n&gt; 強化をコマンドで選ぶ、/pvp slowfield &lt;radius&gt; &lt;seconds&gt; 範囲スローの確認用）
+ * （おまけ: /pvp choose &lt;1..n&gt; 強化をコマンドで選ぶ、/pvp practice [bots] Husk 相手の練習試合、
+ * /pvp slowfield &lt;radius&gt; &lt;seconds&gt; 範囲スローの確認用）
  */
 @Mod.EventBusSubscriber(modid = NeonClash.MODID)
 public final class PvpCommand {
@@ -58,6 +65,10 @@ public final class PvpCommand {
                 .then(Commands.literal("choose")
                         .then(Commands.argument("index", IntegerArgumentType.integer(1, 9)).executes(PvpCommand::choose)))
                 .then(Commands.literal("status").executes(PvpCommand::status))
+                .then(Commands.literal("practice").requires(s -> s.hasPermission(2))
+                        .executes(c -> practice(c, 1))
+                        .then(Commands.argument("bots", IntegerArgumentType.integer(1, 4))
+                                .executes(c -> practice(c, IntegerArgumentType.getInteger(c, "bots")))))
                 .then(Commands.literal("slowfield").requires(s -> s.hasPermission(2))
                         .then(Commands.argument("radius", DoubleArgumentType.doubleArg(0.5, 64))
                                 .then(Commands.argument("seconds", DoubleArgumentType.doubleArg(0.05, 60))
@@ -98,6 +109,38 @@ public final class PvpCommand {
         return 1;
     }
 
+    /** 練習試合：実行したプレイヤー（赤）対 Husk ボット（青）。デモ録画や1人での手触り確認用。 */
+    private static int practice(CommandContext<CommandSourceStack> ctx, int bots) throws CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        ServerPlayer player = src.getPlayerOrException();
+        if (!MatchRegistry.active().isEmpty()) {
+            src.sendFailure(Component.translatable("neonclash.cmd.already_running"));
+            return 0;
+        }
+        ServerLevel level = src.getLevel();
+        Vec3 center = ArenaData.get(level).center();
+        if (center == null) {
+            center = player.position();
+            ArenaData.get(level).setCenter(center);
+        }
+        Map<LivingEntity, Team> members = new LinkedHashMap<>();
+        members.put(player, Team.RED);
+        for (int i = 0; i < bots; i++) {
+            Husk bot = EntityType.HUSK.create(level);
+            if (bot == null) continue;
+            bot.moveTo(center.x, center.y, center.z, 0f, 0f);
+            bot.setPersistenceRequired();
+            bot.addTag(PRACTICE_TAG);
+            level.addFreshEntity(bot);
+            members.put(bot, Team.BLUE);
+        }
+        MatchController.start(level, center, members, MatchController.Options.fromConfig());
+        src.sendSuccess(() -> Component.translatable("neonclash.cmd.started"), true);
+        return 1;
+    }
+
+    private static final String PRACTICE_TAG = "neonclash_practice";
+
     private static int stop(CommandContext<CommandSourceStack> ctx) {
         int n = 0;
         for (MatchController m : MatchRegistry.active()) {
@@ -105,6 +148,13 @@ public final class PvpCommand {
             n++;
         }
         SlowService.clearAll();
+        for (ServerLevel level : ctx.getSource().getServer().getAllLevels()) {
+            List<Entity> bots = new ArrayList<>();
+            for (Entity e : level.getAllEntities()) {
+                if (e.getTags().contains(PRACTICE_TAG)) bots.add(e);
+            }
+            bots.forEach(Entity::discard);
+        }
         int stopped = n;
         ctx.getSource().sendSuccess(() -> Component.translatable("neonclash.cmd.stopped", stopped), true);
         return n;

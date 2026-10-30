@@ -39,6 +39,8 @@ minecraft {
         }
 
         client {
+            // 録画用の自動デモ：./gradlew :mod:runClient -Pneonclash.demo=true
+            property 'neonclash.demo', (project.findProperty('neonclash.demo') ?: 'false').toString()
         }
 
         server {
