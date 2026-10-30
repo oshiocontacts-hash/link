@@ -189,7 +189,8 @@ public class FishBattle {
 				return true;
 			}
 		}
-		if (timer % 20 == 0) {
+		// 片付け後に観戦者を足し直すと、ボスバーが画面に残り続けてしまう
+		if (state != State.DONE && timer % 20 == 0) {
 			updateViewers();
 		}
 		return state == State.DONE;
