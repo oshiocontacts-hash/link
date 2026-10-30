@@ -33,6 +33,7 @@ import java.util.Map;
 
 /**
  * runGameTestServer で実行。テンプレートは data/neonclash/structures/arena.nbt（9x6x9、床だけ）。
+ * GameTest の相対座標では床面が y=1 にあるので、エンティティは y=2 に立たせる（y=1 だと床にめり込む）。
  * スローを使うテストはレベル全体に影響しうるので batch を分け、最後に SlowService をクリアする。
  * 戦闘者は AI を止めた Husk（日光で燃えない）で代用する。
  */
@@ -61,8 +62,8 @@ public final class NCGameTests {
 
     @GameTest(template = ARENA, batch = "neonclash_sword")
     public static void swordKillsInOneHit(GameTestHelper h) {
-        Husk attacker = dummy(h, 2.5, 1, 4.5, -90f);
-        IronGolem target = h.spawn(EntityType.IRON_GOLEM, new Vec3(4.5, 1, 4.5)); // 体力 100・防具値あり
+        Husk attacker = dummy(h, 2.5, 2, 4.5, -90f);
+        IronGolem target = h.spawn(EntityType.IRON_GOLEM, new Vec3(4.5, 2, 4.5)); // 体力 100・防具値あり
         target.setNoAi(true);
         Combatant c = Combatants.getOrCreate(attacker);
         h.assertTrue(SwordService.tryStartWindup(c), "溜めを開始できる");
@@ -79,8 +80,8 @@ public final class NCGameTests {
 
     @GameTest(template = ARENA, batch = "neonclash_sword")
     public static void swordOutOfRangeMisses(GameTestHelper h) {
-        Husk attacker = dummy(h, 1.5, 1, 4.5, -90f);
-        Husk far = dummy(h, 7.5, 1, 4.5, 90f);
+        Husk attacker = dummy(h, 1.5, 2, 4.5, -90f);
+        Husk far = dummy(h, 7.5, 2, 4.5, 90f);
         Combatant c = Combatants.getOrCreate(attacker);
         SwordService.tryStartWindup(c);
         h.runAfterDelay(NCConfig.SERVER.swordWindupTicks.get() + 2, () -> {
@@ -94,16 +95,16 @@ public final class NCGameTests {
     @GameTest(template = ARENA, batch = "neonclash_blink")
     public static void blinkDoesNotPassThroughWall(GameTestHelper h) {
         // x=5 に厚さ 1 の壁（向こう側 x>=6 は空いている）
-        for (int y = 1; y <= 4; y++) {
+        for (int y = 2; y <= 5; y++) {
             for (int z = 0; z <= 8; z++) {
                 h.setBlock(new BlockPos(5, y, z), Blocks.STONE);
             }
         }
-        Husk e = dummy(h, 2.5, 1, 4.5, -90f);
+        Husk e = dummy(h, 2.5, 2, 4.5, -90f);
         Combatant c = Combatants.getOrCreate(e);
         int before = c.blink.charges();
         double startX = e.getX();
-        double wallX = h.absolutePos(new BlockPos(5, 1, 4)).getX();
+        double wallX = h.absolutePos(new BlockPos(5, 2, 4)).getX();
 
         // 失敗したときに原因が分かるよう、判定に使う値をメッセージに入れる
         var look = e.getLookAngle();
@@ -130,13 +131,13 @@ public final class NCGameTests {
     @GameTest(template = ARENA, batch = "neonclash_slowzone")
     public static void slowZoneAffectsOnlyInside(GameTestHelper h) {
         SlowService.clearAll();
-        Husk inside = dummy(h, 2.5, 1, 2.5, 0f);
-        Husk outside = dummy(h, 7.5, 1, 7.5, 0f);
-        Vec3 center = h.absoluteVec(new Vec3(2.5, 2, 2.5));
+        Husk inside = dummy(h, 2.5, 2, 2.5, 0f);
+        Husk outside = dummy(h, 7.5, 2, 7.5, 0f);
+        Vec3 center = h.absoluteVec(new Vec3(2.5, 3, 2.5));
         SlowService.addZone(h.getLevel(), center, 2.0, 0.3, 100);
 
-        Arrow arrowIn = arrow(h, new Vec3(2.0, 3.4, 2.5));
-        Arrow arrowOut = arrow(h, new Vec3(6.0, 3.4, 7.5));
+        Arrow arrowIn = arrow(h, new Vec3(2.0, 4.4, 2.5));
+        Arrow arrowOut = arrow(h, new Vec3(6.0, 4.4, 7.5));
 
         h.runAfterDelay(3, () -> {
             h.assertTrue(SlowService.isSlowed(inside), "範囲内のエンティティは減速");
@@ -163,8 +164,8 @@ public final class NCGameTests {
     @GameTest(template = ARENA, batch = "neonclash_laststand")
     public static void lastStandTriggersOncePerLife(GameTestHelper h) {
         SlowService.clearAll();
-        Husk killer = dummy(h, 2.5, 1, 4.5, -90f);
-        Husk victim = dummy(h, 4.5, 1, 4.5, 90f);
+        Husk killer = dummy(h, 2.5, 2, 4.5, -90f);
+        Husk victim = dummy(h, 4.5, 2, 4.5, 90f);
         Combatants.getOrCreate(killer);
         Combatant vc = Combatants.getOrCreate(victim);
 
@@ -191,12 +192,12 @@ public final class NCGameTests {
     @GameTest(template = ARENA, batch = "neonclash_match", timeoutTicks = 600)
     public static void roundFlowKillEndUpgradeNext(GameTestHelper h) {
         SlowService.clearAll();
-        Husk red = dummy(h, 1.5, 1, 4.5, -90f);
-        Husk blue = dummy(h, 7.5, 1, 4.5, 90f);
+        Husk red = dummy(h, 1.5, 2, 4.5, -90f);
+        Husk blue = dummy(h, 7.5, 2, 4.5, 90f);
         Map<Husk, Team> members = new LinkedHashMap<>();
         members.put(red, Team.RED);
         members.put(blue, Team.BLUE);
-        MatchController m = MatchController.start(h.getLevel(), h.absoluteVec(new Vec3(4.5, 1, 4.5)), members,
+        MatchController m = MatchController.start(h.getLevel(), h.absoluteVec(new Vec3(4.5, 2, 4.5)), members,
                 new MatchController.Options(false, 2.0));
 
         // ラウンド開始
@@ -236,8 +237,8 @@ public final class NCGameTests {
 
     @GameTest(template = ARENA, batch = "neonclash_tacz", timeoutTicks = 300)
     public static void taczGunHitGoesThroughModHandlers(GameTestHelper h) {
-        Husk shooter = dummy(h, 1.5, 1, 4.5, -90f);
-        Husk target = dummy(h, 6.5, 1, 4.5, 90f);
+        Husk shooter = dummy(h, 1.5, 2, 4.5, -90f);
+        Husk target = dummy(h, 6.5, 2, 4.5, 90f);
         ItemStack gun = TaczBridge.makeGun(NCConfig.SERVER.handgunId.get(), 17);
         h.assertFalse(gun.isEmpty(), "TaCZ のハンドガンが作れる（既定の銃パックが読み込まれている）: " + NCConfig.SERVER.handgunId.get());
         shooter.setItemInHand(InteractionHand.MAIN_HAND, gun);
