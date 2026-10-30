@@ -9,10 +9,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -26,11 +31,16 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 /**
  * 録画用のデモ操作（-Dfishfight.demo=true の時だけ動く）。
  * ワールドを作り、釣りミニゲームを2回、練習バトルを2回自動で行ってからゲームを終了する。
- * 録画の開始・終了はゲームフォルダの demo_recording / demo_done ファイルで外に知らせる。
+ * 画面は demo_frames/ に連番PNGで保存し、終了時に demo_done ファイルを作る。
  */
 final class DemoDriver {
 	private static final String WORLD = "fishfight-demo";
 	private static final int MAX_TICKS = 20 * 60 * 8;
+	/** 2tickごと＝10fpsで画面を保存する */
+	private static final int FRAME_INTERVAL = 2;
+
+	private static final ExecutorService FRAME_WRITER = Executors.newSingleThreadExecutor();
+	private static int frameNumber;
 
 	private record Step(String name, int delay, Predicate<Minecraft> ready, Consumer<Minecraft> action) {
 	}
@@ -80,9 +90,10 @@ final class DemoDriver {
 		step("cast 2", 50, mc -> true, DemoDriver::cast);
 		step("catch tuna", 60, mc -> true, mc -> command(mc, "fishfight testcatch tuna rare"));
 		step("wait minigame 2", 40, mc -> mc.screen == null, mc -> { });
-		step("show tuna", 40, mc -> true, mc -> {
+		// 持ち替えはサーバーに次のtickで届くので、コマンドとは別のステップにする
+		step("select tuna", 40, mc -> true, mc -> select(mc, FishSpecies.TUNA));
+		step("show tuna", 10, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
-			select(mc, FishSpecies.TUNA);
 			command(mc, "fishfight info");
 		});
 		step("battle 1", 120, mc -> true, mc -> {
@@ -92,9 +103,9 @@ final class DemoDriver {
 			battleTicks = 0;
 		});
 		step("wait battle 1", 100, DemoDriver::battleOver, mc -> { });
-		step("battle 2", 40, mc -> true, mc -> {
+		step("select shark", 40, mc -> true, mc -> select(mc, FishSpecies.SHARK));
+		step("battle 2", 10, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
-			select(mc, FishSpecies.SHARK);
 			command(mc, "fishfight practice");
 			battleTicks = 0;
 		});
@@ -129,7 +140,12 @@ final class DemoDriver {
 					FishFight.LOGGER.info("[demo] in world, starting script");
 				}
 			}
-			case 2 -> runScript(mc);
+			case 2 -> {
+				runScript(mc);
+				if (totalTicks % FRAME_INTERVAL == 0) {
+					captureFrame(mc);
+				}
+			}
 			default -> {
 			}
 		}
@@ -189,8 +205,28 @@ final class DemoDriver {
 		return true;
 	}
 
+	/** 直前に描画されたフレームを読み出し、PNG書き出しは別スレッドで行う */
+	private static void captureFrame(Minecraft mc) {
+		NativeImage image = Screenshot.takeScreenshot(mc.getMainRenderTarget());
+		Path path = mc.gameDirectory.toPath().resolve("demo_frames").resolve(String.format("%05d.png", frameNumber++));
+		FRAME_WRITER.execute(() -> {
+			try (image) {
+				Files.createDirectories(path.getParent());
+				image.writeToFile(path);
+			} catch (IOException e) {
+				FishFight.LOGGER.warn("[demo] could not write frame {}", path, e);
+			}
+		});
+	}
+
 	private static void finish(Minecraft mc) {
-		FishFight.LOGGER.info("[demo] finished");
+		FishFight.LOGGER.info("[demo] finished, {} frames", frameNumber);
+		FRAME_WRITER.shutdown();
+		try {
+			FRAME_WRITER.awaitTermination(2, TimeUnit.MINUTES);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
 		marker(mc, "demo_done");
 		stage = 3;
 		mc.stop();

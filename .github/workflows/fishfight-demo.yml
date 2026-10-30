@@ -1,6 +1,6 @@
 name: Record Fish Fight demo
 
-# Minecraft を仮想ディスプレイで起動し、自動デモ（釣り→バトル）を録画する。
+# Minecraft を仮想ディスプレイで起動し、自動デモ（釣り→バトル）を録画する（画面はゲーム内で保存）。
 # 動画・スクリーンショット・ログは Artifacts と fishfight-demo-media ブランチに置く。
 on:
   push:
@@ -62,30 +62,23 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 &
           sleep 3
           glxinfo -B | grep -E 'OpenGL (renderer|core profile version)' || true
-          (
-            while [ ! -f run-demo/demo_recording ]; do sleep 1; done
-            ffmpeg -y -loglevel error -f x11grab -video_size 1280x720 -framerate 20 -i :99 \
-              -c:v libx264 -preset ultrafast -crf 24 -pix_fmt yuv420p raw.mp4 &
-            echo $! > ffmpeg.pid
-            wait
-          ) &
           status=0
           timeout 1800 ./gradlew runDemo --stacktrace || status=$?
           echo "runDemo exit status: $status"
-          if [ -f ffmpeg.pid ]; then
-            kill -INT "$(cat ffmpeg.pid)" || true
-            while kill -0 "$(cat ffmpeg.pid)" 2>/dev/null; do sleep 1; done
-          fi
           ls -la run-demo
+          echo "frames: $(ls run-demo/demo_frames 2>/dev/null | wc -l)"
+          test -f run-demo/demo_done
 
       - name: Encode video and frames
         if: always()
         run: |
           mkdir -p media/frames
           cp run-demo/logs/latest.log media/latest.log || true
-          if [ -f raw.mp4 ]; then
-            ffmpeg -y -loglevel error -i raw.mp4 -vf scale=960:-2 -c:v libx264 -preset veryfast -crf 28 -pix_fmt yuv420p media/fishfight-demo.mp4
-            ffmpeg -y -loglevel error -i raw.mp4 -vf "fps=1/2,scale=640:-1" media/frames/f%03d.jpg
+          if [ -d run-demo/demo_frames ]; then
+            # ゲーム内で10fpsで保存した連番PNGを動画にする
+            ffmpeg -y -loglevel error -framerate 10 -i run-demo/demo_frames/%05d.png \
+              -vf "scale=960:-2,format=yuv420p" -c:v libx264 -preset veryfast -crf 26 -r 30 media/fishfight-demo.mp4
+            ffmpeg -y -loglevel error -i media/fishfight-demo.mp4 -vf "fps=1/2,scale=640:-1" media/frames/f%03d.jpg
           fi
           ls -la media media/frames | head -100
 
