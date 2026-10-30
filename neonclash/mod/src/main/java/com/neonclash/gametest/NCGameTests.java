@@ -105,7 +105,15 @@ public final class NCGameTests {
         double startX = e.getX();
         double wallX = h.absolutePos(new BlockPos(5, 1, 4)).getX();
 
-        h.assertTrue(BlinkService.tryBlink(c), "壁の手前まではブリンクできる");
+        // 失敗したときに原因が分かるよう、判定に使う値をメッセージに入れる
+        var look = e.getLookAngle();
+        var probe = com.neonclash.core.movement.BlinkResolver.resolve(com.neonclash.game.Vecs.core(e.position()),
+                com.neonclash.game.Vecs.core(look), e.getBbWidth(), e.getBbHeight(),
+                NCConfig.SERVER.blinkSettings(0), box -> h.getLevel().noCollision(e, com.neonclash.game.Vecs.mc(box)));
+        String why = String.format(java.util.Locale.ROOT, "pos=%s look=%s bb=%.2fx%.2f startFree=%s probe=%s charges=%d",
+                e.position(), look, e.getBbWidth(), e.getBbHeight(), h.getLevel().noCollision(e, e.getBoundingBox()),
+                probe, c.blink.charges());
+        h.assertTrue(BlinkService.tryBlink(c), "壁の手前まではブリンクできる " + why);
         h.assertTrue(e.getX() > startX + 0.5, "前に進んでいる");
         h.assertTrue(e.getX() + e.getBbWidth() / 2 <= wallX + 1.0e-6, "壁を貫通していない x=" + e.getX() + " wall=" + wallX);
         h.assertTrue(h.getLevel().noCollision(e, e.getBoundingBox()), "ブロックにめり込んでいない");

@@ -82,6 +82,7 @@ public final class DemoDriver {
 
     private static void buildScript() {
         step("setup", 60, mc -> true, mc -> {
+            command(mc, "gamerule sendCommandFeedback false");
             command(mc, "gamerule doDaylightCycle false");
             command(mc, "gamerule doWeatherCycle false");
             command(mc, "gamerule doMobSpawning false");
@@ -127,7 +128,7 @@ public final class DemoDriver {
         });
         step("practice", 60, mc -> true, mc -> {
             mc.gui.getChat().clearMessages(false);
-            command(mc, "pvp practice 2");
+            command(mc, "pvp practice 3");
             fighting = true;
         });
         step("finish", 0, DemoDriver::shouldFinish, DemoDriver::finish);
@@ -183,15 +184,18 @@ public final class DemoDriver {
         stepTicks = 0;
     }
 
-    /** 2 ラウンド分（または試合終了・録画上限）で終わり。 */
+    /** 試合終了（勝敗の表示を少し見せてから）か、録画上限で終わり。 */
     private static boolean shouldFinish(Minecraft mc) {
         if (recordStart > 0 && System.currentTimeMillis() - recordStart > MAX_RECORD_MILLIS) return true;
         var hud = ClientState.hud;
         if (hud == null) return fightTicks > 200; // 試合が終わって HUD が消えた
-        boolean pastRound2 = hud.round() >= 3 || (hud.round() == 2 && hud.phase() == RoundEngine.Phase.INTERMISSION.ordinal()
-                && hud.timeTicks() < 40);
-        return pastRound2 || hud.phase() == RoundEngine.Phase.FINISHED.ordinal();
+        if (hud.phase() == RoundEngine.Phase.FINISHED.ordinal()) {
+            finishedTicks++;
+        }
+        return finishedTicks > 60;
     }
+
+    private static int finishedTicks;
 
     // ------------------------------------------------------------------ 自動操作
 

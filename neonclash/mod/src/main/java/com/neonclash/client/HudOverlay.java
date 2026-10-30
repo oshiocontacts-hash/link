@@ -170,7 +170,8 @@ public final class HudOverlay {
         g.fill(px, y, px + Math.round(28 * hud.parryProgress()), y + 6, Neon.argb(parryColor, parryReady ? 1f : 0.5f));
         // 切り札
         Component ls = Component.translatable("neonclash.hud.last_stand").withStyle(ChatFormatting.BOLD);
-        Neon.glowText(g, font, ls, px + 60, y - 1, hud.lastStand() ? 0xFFD23F : 0x50FFFFFF, hud.lastStand() ? 1f : 0f);
+        // TaCZ の弾数表示（右下）と重ならないよう、パリィの上に置く
+        Neon.glowText(g, font, ls, px + 14, y - 24, hud.lastStand() ? 0xFFD23F : 0x50FFFFFF, hud.lastStand() ? 1f : 0f);
     }
 
     // ------------------------------------------------------------ style rank
