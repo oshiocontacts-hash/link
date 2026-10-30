@@ -1,6 +1,7 @@
 package com.fishfight.command;
 
 import com.fishfight.FishFight;
+import com.fishfight.FishFightConfig;
 import com.fishfight.battle.FishBattleManager;
 import com.fishfight.fish.FishGenerator;
 import com.fishfight.fish.FishRarity;
@@ -11,6 +12,8 @@ import com.fishfight.fish.Skill;
 import com.fishfight.fishing.FishingMinigameManager;
 import com.fishfight.item.FishItem;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -82,6 +85,32 @@ public final class FishFightCommand {
 														StringArgumentType.getString(ctx, "rarity"),
 														StringArgumentType.getString(ctx, "extras")))))))
 				.then(Commands.literal("info").executes(ctx -> info(ctx.getSource())))
+				.then(Commands.literal("kit")
+						.requires(source -> source.hasPermission(2))
+						.executes(ctx -> kit(ctx.getSource())))
+				.then(Commands.literal("settings")
+						.requires(source -> source.hasPermission(2))
+						.executes(ctx -> showSettings(ctx.getSource()))
+						.then(Commands.literal("minigame_chance")
+								.then(Commands.argument("value", IntegerArgumentType.integer(0, 100)).executes(ctx -> {
+									FishFightConfig.get().minigameChance = IntegerArgumentType.getInteger(ctx, "value");
+									return saveSettings(ctx.getSource());
+								})))
+						.then(Commands.literal("slowmo")
+								.then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
+									FishFightConfig.get().slowmo = BoolArgumentType.getBool(ctx, "value");
+									return saveSettings(ctx.getSource());
+								})))
+						.then(Commands.literal("chat_log")
+								.then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
+									FishFightConfig.get().chatLog = BoolArgumentType.getBool(ctx, "value");
+									return saveSettings(ctx.getSource());
+								})))
+						.then(Commands.literal("announcer")
+								.then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
+									FishFightConfig.get().announcer = BoolArgumentType.getBool(ctx, "value");
+									return saveSettings(ctx.getSource());
+								}))))
 				.then(Commands.literal("give")
 						.requires(source -> source.hasPermission(2))
 						.executes(ctx -> give(ctx, null, null, null))
@@ -112,11 +141,50 @@ public final class FishFightCommand {
 	}
 
 	private static int help(CommandSourceStack source) {
-		for (String line : List.of("title", "fish", "skills", "challenge", "accept", "practice", "info", "give")) {
+		for (String line : List.of("title", "fish", "skills", "challenge", "accept", "practice", "info", "kit", "settings", "give")) {
 			ChatFormatting color = line.equals("title") ? ChatFormatting.GOLD : ChatFormatting.GRAY;
 			source.sendSuccess(() -> FishFight.tr("help." + line).withStyle(color), false);
 		}
 		return 1;
+	}
+
+	/** 撮影用：おもしろい魚をひと通りもらう */
+	private static final List<String[]> KIT = List.of(
+			new String[] {"seahorse", "rare", "leg_sprout charge"},
+			new String[] {"shark", "epic", "charge"},
+			new String[] {"sunfish", "rare", ""},
+			new String[] {"tuna", "rare", "arm_sprout leg_sprout"},
+			new String[] {"pufferfish", "rare", "puff_up arm_sprout"},
+			new String[] {"catfish", "epic", "discharge leg_sprout"},
+			new String[] {"coelacanth", "legendary", "leg_sprout endure"});
+
+	private static int kit(CommandSourceStack source) throws CommandSyntaxException {
+		ServerPlayer player = source.getPlayerOrException();
+		for (String[] spec : KIT) {
+			FishStats stats = rollFish(player, spec[0], spec[1], spec[2].isEmpty() ? null : spec[2]);
+			player.getInventory().placeItemBackInInventory(FishItem.create(stats));
+		}
+		source.sendSuccess(() -> FishFight.tr("command.kit", KIT.size()).withStyle(ChatFormatting.GREEN), false);
+		return KIT.size();
+	}
+
+	private static int showSettings(CommandSourceStack source) {
+		FishFightConfig config = FishFightConfig.get();
+		source.sendSuccess(() -> FishFight.tr("settings.title").withStyle(ChatFormatting.GOLD), false);
+		source.sendSuccess(() -> FishFight.tr("settings.minigame_chance", config.minigameChance), false);
+		source.sendSuccess(() -> FishFight.tr("settings.slowmo", onOff(config.slowmo)), false);
+		source.sendSuccess(() -> FishFight.tr("settings.chat_log", onOff(config.chatLog)), false);
+		source.sendSuccess(() -> FishFight.tr("settings.announcer", onOff(config.announcer)), false);
+		return 1;
+	}
+
+	private static Component onOff(boolean value) {
+		return FishFight.tr(value ? "settings.on" : "settings.off").withStyle(value ? ChatFormatting.GREEN : ChatFormatting.RED);
+	}
+
+	private static int saveSettings(CommandSourceStack source) {
+		FishFightConfig.get().save();
+		return showSettings(source);
 	}
 
 	private static int info(CommandSourceStack source) throws CommandSyntaxException {

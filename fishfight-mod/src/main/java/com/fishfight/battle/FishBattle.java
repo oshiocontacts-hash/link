@@ -1,6 +1,8 @@
 package com.fishfight.battle;
 
 import com.fishfight.FishFight;
+import com.fishfight.FishFightConfig;
+import com.fishfight.fish.FishSpecies;
 import com.fishfight.entity.BattleFishEntity;
 import com.fishfight.fish.FishStats;
 import com.fishfight.fish.Skill;
@@ -8,6 +10,7 @@ import com.fishfight.registry.ModComponents;
 import com.fishfight.registry.ModEntities;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -38,7 +41,11 @@ import org.jetbrains.annotations.Nullable;
 public class FishBattle {
 	private static final int INTRO_TICKS = 60;
 	private static final int FIGHT_TICKS = 20 * 90;
-	private static final int ENDING_TICKS = 60;
+	private static final int ENDING_TICKS = 80;
+	/** 実況のセリフの数（fishfight.announcer.<イベント>.<番号>） */
+	private static final Map<String, Integer> COMMENTARY = Map.of(
+			"start", 4, "seahorse", 2, "sunfish", 2, "crit", 3, "arms", 3, "legs", 2,
+			"seahorse_legs", 2, "shark", 2, "ko", 4, "mola_death", 2);
 	private static final double VIEW_RANGE = 48.0;
 	private static final double FORFEIT_RANGE = 64.0;
 	/** この時間どちらもHPが変わらなければ仕切り直す（水中と陸でにらみ合い等） */
@@ -58,6 +65,7 @@ public class FishBattle {
 	private int timer;
 	private float lastHpSum = -1f;
 	private int idleTicks;
+	private int commentCooldown;
 	@Nullable
 	private Fighter winner;
 
@@ -85,6 +93,14 @@ public class FishBattle {
 			announce(FishFight.tr("battle.intro_stats", f.name, f.stats.power(), f.stats.hp(), f.stats.atk(), f.stats.def(), f.stats.spd())
 					.withStyle(ChatFormatting.GRAY));
 			announce(Component.literal("　").append(skillList(f.stats)));
+		}
+		commentate("start", true);
+		for (Fighter f : fighters) {
+			if (f.stats.species() == FishSpecies.SEAHORSE) {
+				commentate("seahorse", true);
+			} else if (f.stats.species() == FishSpecies.SUNFISH) {
+				commentate("sunfish", true);
+			}
 		}
 	}
 
@@ -134,6 +150,9 @@ public class FishBattle {
 	/** @return 試合が終わって片付けが済んだら true */
 	public boolean tick() {
 		timer++;
+		if (commentCooldown > 0) {
+			commentCooldown--;
+		}
 		switch (state) {
 			case INTRO -> tickIntro();
 			case FIGHT -> tickFight();
@@ -194,9 +213,25 @@ public class FishBattle {
 	}
 
 	private void tickEnding() {
-		if (winner != null && !winner.defeated() && timer % 5 == 0) {
-			Vec3 p = winner.entity.position();
-			level.sendParticles(ParticleTypes.HAPPY_VILLAGER, p.x, p.y + 0.5, p.z, 4, 0.5, 0.5, 0.5, 0.0);
+		if (winner != null && !winner.defeated()) {
+			BattleFishEntity entity = winner.entity;
+			// 勝った魚はぴょんぴょん跳ねて喜ぶ
+			if (timer % 12 == 0 && entity.onGround()) {
+				entity.setDeltaMovement(0, 0.45, 0);
+				entity.hasImpulse = true;
+			}
+			if (timer % 5 == 0) {
+				Vec3 p = entity.position();
+				level.sendParticles(ParticleTypes.HAPPY_VILLAGER, p.x, p.y + 0.5, p.z, 4, 0.5, 0.5, 0.5, 0.0);
+			}
+			// 花火（パーティクルなのでプレイヤーにダメージはない）
+			if (timer % 15 == 5) {
+				double x = center.x + (level.random.nextDouble() - 0.5) * 6;
+				double z = center.z + (level.random.nextDouble() - 0.5) * 6;
+				level.sendParticles(ParticleTypes.FIREWORK, x, center.y + 5, z, 60, 0.2, 0.2, 0.2, 0.25);
+				level.sendParticles(ParticleTypes.FLASH, x, center.y + 5, z, 1, 0, 0, 0, 0);
+				playSound(SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, 1.0f, 1.0f);
+			}
 		}
 		if (timer >= ENDING_TICKS) {
 			cleanup();
@@ -216,6 +251,7 @@ public class FishBattle {
 		}
 		idleTicks = 0;
 		announce(FishFight.tr("battle.reset").withStyle(ChatFormatting.YELLOW));
+		commentate("reset", true);
 		for (int i = 0; i < 2; i++) {
 			BattleFishEntity entity = fighters[i].entity;
 			Vec3 p = startPositions[i];
@@ -259,8 +295,17 @@ public class FishBattle {
 		for (int i = 0; i < 2; i++) {
 			bars[i].setProgress(fighters[i].hpRatio());
 		}
-		announce(FishFight.tr("battle.defeated", loser.name).withStyle(ChatFormatting.GRAY));
+		boolean knockout = loser.entity != null && loser.entity.isDeadOrDying();
+		announce(FishFight.tr(knockout ? "battle.homerun" : "battle.defeated", loser.name).withStyle(ChatFormatting.GRAY));
 		announce(FishFight.tr("battle.winner", winner.name).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+		if (knockout) {
+			commentate("ko", true);
+			titleAll(FishFight.tr("battle.homerun_title").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
+					FishFight.tr("battle.winner", winner.name).withStyle(ChatFormatting.YELLOW), 50);
+			if (FishFightConfig.get().slowmo) {
+				FishBattleManager.slowMotion(server);
+			}
+		}
 		if (!winner.defeated()) {
 			Vec3 p = winner.entity.position();
 			level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, p.x, p.y + 0.5, p.z, 50, 0.4, 0.4, 0.4, 0.3);
@@ -270,13 +315,15 @@ public class FishBattle {
 		ServerPlayer winnerPlayer = winner.owner == null ? null : server.getPlayerList().getPlayer(winner.owner);
 		ServerPlayer loserPlayer = loser.owner == null ? null : server.getPlayerList().getPlayer(loser.owner);
 		if (winnerPlayer != null) {
-			title(winnerPlayer, FishFight.tr("battle.victory").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), winner.name, 50);
+			if (!knockout) {
+				title(winnerPlayer, FishFight.tr("battle.victory").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), winner.name, 50);
+			}
 			winnerPlayer.giveExperiencePoints(10 + loser.stats.rarity().ordinal() * 5);
 			if (!practice) {
 				addWin(winnerPlayer, winner.stats);
 			}
 		}
-		if (loserPlayer != null) {
+		if (loserPlayer != null && !knockout) {
 			title(loserPlayer, FishFight.tr("battle.defeat").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.BOLD), loser.name, 50);
 		}
 	}
@@ -343,8 +390,34 @@ public class FishBattle {
 		}
 	}
 
-	/** 観戦中のプレイヤー全員にチャットで知らせる */
+	/** 観戦中のプレイヤー全員に知らせる（設定でチャットかアクションバーか選べる） */
 	public void announce(Component message) {
+		boolean chat = FishFightConfig.get().chatLog;
+		for (ServerPlayer p : viewers()) {
+			if (chat) {
+				p.sendSystemMessage(message);
+			} else {
+				p.displayClientMessage(message, true);
+			}
+		}
+	}
+
+	/**
+	 * 実況のツッコミ。大事な場面（important）以外は3秒に1回まで。
+	 * セリフは言語ファイルの fishfight.announcer.<event>.<番号>
+	 */
+	public void commentate(String event, boolean important) {
+		if (!FishFightConfig.get().announcer || (!important && commentCooldown > 0)) {
+			return;
+		}
+		int count = COMMENTARY.getOrDefault(event, event.equals("reset") ? 1 : 0);
+		if (count == 0) {
+			return;
+		}
+		commentCooldown = 60;
+		int line = level.random.nextInt(count);
+		Component message = FishFight.tr("announcer.prefix").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
+				.append(FishFight.tr("announcer." + event + "." + line).withStyle(ChatFormatting.LIGHT_PURPLE));
 		for (ServerPlayer p : viewers()) {
 			p.sendSystemMessage(message);
 		}

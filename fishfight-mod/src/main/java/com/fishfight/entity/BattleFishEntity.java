@@ -371,10 +371,17 @@ public class BattleFishEntity extends PathfinderMob {
 			damage *= 1.75f;
 			particles(opponent, ParticleTypes.CRIT, 15);
 			playSound(SoundEvents.PLAYER_ATTACK_CRIT, 1.0f, 1.0f);
+			if (battle != null) {
+				battle.commentate("crit", false);
+			}
 		} else {
 			playSound(punch ? SoundEvents.PLAYER_ATTACK_KNOCKBACK : SoundEvents.PLAYER_ATTACK_STRONG, 0.8f, 1.1f);
 		}
 		float dealt = opponent.takeFishDamage(this, Math.max(1f, damage));
+		// マンボウの固有能力「豆腐メンタル」：殴られると驚いて死ぬことがある
+		if (dealt > 0f && opponent.isAlive() && opponent.isSunfish() && random.nextFloat() < (crit ? 0.3f : 0.06f)) {
+			opponent.dieOfShock();
+		}
 		if (isSeahorse() && dealt > 0f) {
 			// 固有能力「馬力」：思いきり蹴り飛ばす
 			Vec3 away = opponent.position().subtract(position()).normalize();
@@ -518,6 +525,9 @@ public class BattleFishEntity extends PathfinderMob {
 		atkMul *= 1.5f;
 		announce(Skill.ARM_SPROUT, Component.translatable("fishfight.battle.skill.arm_sprout", fighter.name));
 		if (battle != null) {
+			battle.commentate("arms", true);
+		}
+		if (battle != null) {
 			battle.titleAll(Component.literal("！？").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD),
 					Component.translatable("fishfight.battle.sprout_arms_title", fighter.stats.species().displayName())
 							.withStyle(ChatFormatting.YELLOW), 30);
@@ -535,6 +545,9 @@ public class BattleFishEntity extends PathfinderMob {
 		getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(getAttributeBaseValue(Attributes.MOVEMENT_SPEED) * 1.2);
 		announce(Skill.LEG_SPROUT, Component.translatable(isSeahorse()
 				? "fishfight.battle.skill.leg_sprout_seahorse" : "fishfight.battle.skill.leg_sprout", fighter.name));
+		if (battle != null) {
+			battle.commentate(isSeahorse() ? "seahorse_legs" : "legs", true);
+		}
 		playSound(SoundEvents.SLIME_SQUISH, 1.0f, 0.6f);
 		particles(this, ParticleTypes.POOF, 20);
 		stunTicks = Math.max(stunTicks, 10);
@@ -629,6 +642,9 @@ public class BattleFishEntity extends PathfinderMob {
 		playSound(SoundEvents.RAVAGER_ROAR, 1.0f, 0.6f);
 		announce(null, Component.translatable("fishfight.battle.unique.shark_man.done", fighter.name)
 				.withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD));
+		if (battle != null) {
+			battle.commentate("shark", true);
+		}
 		if (battle != null) {
 			battle.titleAll(Component.translatable("fishfight.battle.unique.shark_man.done_title").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD),
 					Component.translatable("fishfight.battle.unique.shark_man.done_subtitle").withStyle(ChatFormatting.GOLD), 50);
@@ -747,6 +763,54 @@ public class BattleFishEntity extends PathfinderMob {
 	@Override
 	public boolean shouldBeSaved() {
 		return false;
+	}
+
+	public boolean isSunfish() {
+		return getSpecies() == FishSpecies.SUNFISH;
+	}
+
+	/** マンボウが驚きすぎて死ぬ */
+	public void dieOfShock() {
+		if (fighter != null) {
+			announce(null, Component.translatable("fishfight.battle.unique.tofu_mental", fighter.name).withStyle(ChatFormatting.GRAY));
+		}
+		if (battle != null) {
+			battle.commentate("mola_death", true);
+		}
+		particles(this, ParticleTypes.SMOKE, 20);
+		playSound(SoundEvents.VILLAGER_NO, 1.0f, 0.6f);
+		hurt(damageSources().genericKill(), Float.MAX_VALUE);
+	}
+
+	/** 倒れたらホームラン：回転しながら空へ飛んでいき、花火のように弾ける */
+	@Override
+	protected void tickDeath() {
+		this.deathTime++;
+		if (level().isClientSide) {
+			return;
+		}
+		if (this.deathTime == 1) {
+			Vec3 away = opponent != null ? position().subtract(opponent.position()) : new Vec3(random.nextGaussian(), 0, random.nextGaussian());
+			away = new Vec3(away.x, 0, away.z);
+			away = away.lengthSqr() < 1.0E-4 ? new Vec3(1, 0, 0) : away.normalize();
+			setNoGravity(false);
+			setDeltaMovement(away.x * 0.7, 1.5, away.z * 0.7);
+			this.hasImpulse = true;
+			playSound(SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.0f, 0.5f);
+			playSound(SoundEvents.FIREWORK_ROCKET_LAUNCH, 1.0f, 1.0f);
+		}
+		if (this.deathTime % 3 == 0 && level() instanceof ServerLevel server) {
+			server.sendParticles(ParticleTypes.FIREWORK, getX(), getY(), getZ(), 2, 0.05, 0.05, 0.05, 0.01);
+		}
+		if (this.deathTime >= 35 && !isRemoved()) {
+			if (level() instanceof ServerLevel server) {
+				server.sendParticles(ParticleTypes.FIREWORK, getX(), getY() + 0.5, getZ(), 80, 0.3, 0.3, 0.3, 0.3);
+				server.sendParticles(ParticleTypes.FLASH, getX(), getY() + 0.5, getZ(), 1, 0, 0, 0, 0);
+			}
+			playSound(SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, 2.0f, 1.0f);
+			playSound(SoundEvents.FIREWORK_ROCKET_TWINKLE, 2.0f, 1.0f);
+			remove(RemovalReason.KILLED);
+		}
 	}
 
 	private boolean isSeahorse() {

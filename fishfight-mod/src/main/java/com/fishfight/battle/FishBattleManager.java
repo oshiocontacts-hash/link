@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
@@ -41,7 +42,36 @@ public final class FishBattleManager {
 	private static final Map<UUID, Challenge> CHALLENGES = new HashMap<>();
 	private static final List<FishBattle> BATTLES = new ArrayList<>();
 
+	/** スローモーション中なら元の速さ、そうでなければ -1 */
+	private static float savedTickRate = -1f;
+	private static long slowMotionEnd;
+
 	private FishBattleManager() {
+	}
+
+	/** とどめの瞬間、2.5秒だけサーバー全体をスローにする */
+	public static void slowMotion(MinecraftServer server) {
+		if (savedTickRate < 0f) {
+			savedTickRate = server.tickRateManager().tickrate();
+		}
+		server.tickRateManager().setTickRate(5f);
+		slowMotionEnd = System.currentTimeMillis() + 2500;
+	}
+
+	private static void endSlowMotion(MinecraftServer server) {
+		if (savedTickRate > 0f) {
+			server.tickRateManager().setTickRate(savedTickRate);
+			savedTickRate = -1f;
+		}
+	}
+
+	/** 手に持った魚の表示名。金床で名前を付けていれば「名前」（種類）になる */
+	public static Component fishLabel(ServerPlayer player, FishStats stats) {
+		ItemStack stack = player.getMainHandItem();
+		if (stack.has(DataComponents.CUSTOM_NAME)) {
+			return FishFight.tr("battle.named", stack.getHoverName(), stats.displayName());
+		}
+		return stats.displayName();
 	}
 
 	@Nullable
@@ -143,8 +173,8 @@ public final class FishBattleManager {
 			axis = new Vec3(look.x, 0, look.z);
 		}
 		Vec3 center = new Vec3((pa.x + pb.x) / 2, Math.max(pa.y, pb.y), (pa.z + pb.z) / 2);
-		Fighter fa = new Fighter(a, challenger.getUUID(), FishFight.tr("battle.owned", challenger.getDisplayName(), a.displayName()));
-		Fighter fb = new Fighter(b, target.getUUID(), FishFight.tr("battle.owned", target.getDisplayName(), b.displayName()));
+		Fighter fa = new Fighter(a, challenger.getUUID(), FishFight.tr("battle.owned", challenger.getDisplayName(), fishLabel(challenger, a)));
+		Fighter fb = new Fighter(b, target.getUUID(), FishFight.tr("battle.owned", target.getDisplayName(), fishLabel(target, b)));
 		BATTLES.add(new FishBattle(challenger.serverLevel(), center, axis, fa, fb, false));
 	}
 
@@ -187,12 +217,15 @@ public final class FishBattleManager {
 		// プレイヤーから横向きに見えるように並べる
 		Vec3 axis = new Vec3(-forward.z, 0, forward.x);
 
-		Fighter fa = new Fighter(mine, player.getUUID(), FishFight.tr("battle.owned", player.getDisplayName(), mine.displayName()));
+		Fighter fa = new Fighter(mine, player.getUUID(), FishFight.tr("battle.owned", player.getDisplayName(), fishLabel(player, mine)));
 		Fighter fb = new Fighter(wild, null, FishFight.tr("battle.wild", wild.displayName()));
 		BATTLES.add(new FishBattle(player.serverLevel(), center, axis, fa, fb, true));
 	}
 
 	public static void tick(MinecraftServer server) {
+		if (savedTickRate > 0f && System.currentTimeMillis() > slowMotionEnd) {
+			endSlowMotion(server);
+		}
 		if (!BATTLES.isEmpty()) {
 			BATTLES.removeIf(FishBattle::tick);
 		}
@@ -215,7 +248,8 @@ public final class FishBattleManager {
 		CHALLENGES.values().removeIf(c -> c.challenger().equals(player.getUUID()));
 	}
 
-	public static void clear() {
+	public static void clear(MinecraftServer server) {
+		endSlowMotion(server);
 		for (FishBattle battle : BATTLES) {
 			battle.cancel();
 		}

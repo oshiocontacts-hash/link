@@ -22,6 +22,8 @@ public enum FishSpecies implements StringRepresentable {
 	OARFISH("oarfish", Habitat.OCEAN, 1.5f, 0xC8D0E0, 300, 800, 2f, 120, 20, 18, 18, 10, 2.2f, 1.1f, 0.55f, 1.3f, 3.0f),
 	// 体長はタツノオトシゴなのに、重さと見た目は馬
 	SEAHORSE("seahorse", Habitat.OCEAN, 8f, 0x8B5A2B, 12, 30, 60000f, 95, 17, 13, 20, 7, 1.5f, 1.0f, 1.0f, 1.0f, 1.0f),
+	// HPは多いのに、驚くとすぐ死ぬ
+	SUNFISH("sunfish", Habitat.OCEAN, 5f, 0xA9B4BE, 100, 330, 40f, 200, 10, 10, 6, 3, 1.0f, 1.15f, 0.5f, 2.2f, 0.6f),
 	COELACANTH("coelacanth", Habitat.ANY, 0.8f, 0x3C4E7A, 100, 200, 17f, 140, 22, 22, 12, 8, 2.4f, 1.1f, 1.3f, 1.2f, 1.5f);
 
 	public static final Codec<FishSpecies> CODEC = StringRepresentable.fromEnum(FishSpecies::values);
@@ -82,6 +84,7 @@ public enum FishSpecies implements StringRepresentable {
 		return switch (this) {
 			case SHARK -> "shark_man";
 			case SEAHORSE -> "horsepower";
+			case SUNFISH -> "tofu_mental";
 			default -> null;
 		};
 	}

@@ -1,6 +1,7 @@
 package com.fishfight.item;
 
 import com.fishfight.FishFight;
+import com.fishfight.battle.FishBattleManager;
 import com.fishfight.fish.FishGenerator;
 import com.fishfight.fish.FishRarity;
 import com.fishfight.fish.FishSpecies;
@@ -11,7 +12,11 @@ import com.fishfight.registry.ModItems;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -57,6 +62,21 @@ public class FishItem extends Item {
 		}
 		stats.appendTooltip(lines);
 		lines.add(FishFight.tr("tooltip.hint").withStyle(ChatFormatting.DARK_AQUA));
+		lines.add(FishFight.tr("tooltip.hint_practice").withStyle(ChatFormatting.DARK_AQUA));
+	}
+
+	/** スニーク＋右クリックで、野生の魚とすぐに練習試合 */
+	@Override
+	public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+		ItemStack stack = player.getItemInHand(hand);
+		if (hand != InteractionHand.MAIN_HAND || !player.isShiftKeyDown()) {
+			return InteractionResultHolder.pass(stack);
+		}
+		if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
+			FishBattleManager.practice(serverPlayer, null);
+			player.getCooldowns().addCooldown(this, 40);
+		}
+		return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
 	}
 
 	@Override

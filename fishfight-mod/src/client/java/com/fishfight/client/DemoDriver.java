@@ -37,8 +37,9 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 final class DemoDriver {
 	private static final String WORLD = "fishfight-demo";
 	private static final int MAX_TICKS = 20 * 60 * 7;
-	/** 2tickごと＝10fpsで画面を保存する */
-	private static final int FRAME_INTERVAL = 2;
+	/** 実時間で10fps。スローモーション中もそのまま遅く見えるように、tickではなく実時間で数える */
+	private static final long FRAME_MILLIS = 100;
+	private static long recordStart;
 
 	private static final ExecutorService FRAME_WRITER = Executors.newSingleThreadExecutor();
 	private static int frameNumber;
@@ -91,13 +92,13 @@ final class DemoDriver {
 			mc.player.getInventory().selected = 0;
 		});
 		step("cast 1", 30, mc -> true, DemoDriver::cast);
-		step("catch shark", 60, mc -> true, mc -> command(mc, "fishfight testcatch shark rare charge"));
+		step("catch shark", 60, mc -> true, mc -> command(mc, "fishfight testcatch seahorse rare leg_sprout charge"));
 		step("wait minigame 1", 40, mc -> mc.screen == null, mc -> { });
 		step("cast 2", 50, mc -> true, DemoDriver::cast);
-		step("catch tuna", 60, mc -> true, mc -> command(mc, "fishfight testcatch tuna rare arm_sprout leg_sprout"));
+		step("catch tuna", 60, mc -> true, mc -> command(mc, "fishfight testcatch shark rare charge"));
 		step("wait minigame 2", 40, mc -> mc.screen == null, mc -> { });
 		// 持ち替えはサーバーに次のtickで届くので、コマンドとは別のステップにする
-		step("select tuna", 40, mc -> true, mc -> select(mc, FishSpecies.TUNA));
+		step("select seahorse", 40, mc -> true, mc -> select(mc, FishSpecies.SEAHORSE));
 		step("show tuna", 10, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
 			command(mc, "fishfight info");
@@ -105,8 +106,8 @@ final class DemoDriver {
 		step("battle 1", 120, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
 			command(mc, "tp @s ~ ~ ~ 0 18");
-			// 相手はシーホース（どう見ても馬）
-			command(mc, "fishfight practice seahorse rare leg_sprout");
+			// シーホース（どう見ても馬） vs マンボウ（豆腐メンタル）
+			command(mc, "fishfight practice sunfish rare");
 			battleTicks = 0;
 		});
 		step("empty hand 1", 10, mc -> true, DemoDriver::stepBack);
@@ -155,7 +156,7 @@ final class DemoDriver {
 			case 2 -> {
 				runScript(mc);
 				followBattle(mc);
-				if (capturing && stage == 2 && totalTicks % FRAME_INTERVAL == 0) {
+				if (capturing && stage == 2) {
 					captureFrame(mc);
 				}
 			}
@@ -189,7 +190,7 @@ final class DemoDriver {
 		double z = 0;
 		int count = 0;
 		for (Entity entity : mc.level.entitiesForRendering()) {
-			if (entity instanceof BattleFishEntity fish && fish.isAlive()) {
+			if (entity instanceof BattleFishEntity fish && !fish.isRemoved()) {
 				x += fish.getX();
 				y += fish.getY() + fish.getBbHeight() * 0.5;
 				z += fish.getZ();
@@ -253,16 +254,34 @@ final class DemoDriver {
 		return true;
 	}
 
-	/** 直前に描画されたフレームを読み出し、PNG書き出しは別スレッドで行う */
+	/**
+	 * 直前に描画されたフレームを読み出し、PNG書き出しは別スレッドで行う。
+	 * 実時間で足りない分だけ同じ画面を複製するので、動画の速さは実際の見た目どおりになる。
+	 */
 	private static void captureFrame(Minecraft mc) {
+		long now = System.currentTimeMillis();
+		if (recordStart == 0) {
+			recordStart = now;
+		}
+		int target = (int) ((now - recordStart) / FRAME_MILLIS) + 1;
+		int count = target - frameNumber;
+		if (count <= 0) {
+			return;
+		}
 		NativeImage image = Screenshot.takeScreenshot(mc.getMainRenderTarget());
-		Path path = mc.gameDirectory.toPath().resolve("demo_frames").resolve(String.format("%05d.png", frameNumber++));
+		Path dir = mc.gameDirectory.toPath().resolve("demo_frames");
+		int first = frameNumber;
+		frameNumber += count;
 		FRAME_WRITER.execute(() -> {
 			try (image) {
-				Files.createDirectories(path.getParent());
-				image.writeToFile(path);
+				Files.createDirectories(dir);
+				Path firstPath = dir.resolve(String.format("%05d.png", first));
+				image.writeToFile(firstPath);
+				for (int i = 1; i < count; i++) {
+					Files.copy(firstPath, dir.resolve(String.format("%05d.png", first + i)));
+				}
 			} catch (IOException e) {
-				FishFight.LOGGER.warn("[demo] could not write frame {}", path, e);
+				FishFight.LOGGER.warn("[demo] could not write frame {}", first, e);
 			}
 		});
 	}

@@ -159,6 +159,7 @@ public final class FishGenerator {
 			case OARFISH -> EnumSet.of(Skill.DISCHARGE, Skill.REGENERATE);
 			case COELACANTH -> EnumSet.of(Skill.ENDURE, Skill.LEG_SPROUT);
 			case SEAHORSE -> EnumSet.of(Skill.LEG_SPROUT, Skill.CHARGE);
+			case SUNFISH -> EnumSet.of(Skill.REGENERATE);
 		};
 	}
 

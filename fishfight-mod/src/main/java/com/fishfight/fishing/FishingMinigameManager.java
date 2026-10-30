@@ -69,6 +69,13 @@ public final class FishingMinigameManager {
 		}
 
 		FishStats stats = pending.stats();
+		if ("tofu_mental".equals(stats.species().uniqueAbility()) && player.getRandom().nextFloat() < 0.15f) {
+			// マンボウは釣り上げられたショックで死んでしまうことがある
+			player.sendSystemMessage(FishFight.tr("fishing.sunfish_shock", stats.displayName()).withStyle(ChatFormatting.GRAY));
+			level.sendParticles(ParticleTypes.SMOKE, player.getX(), player.getY() + 1.0, player.getZ(), 20, 0.4, 0.4, 0.4, 0.02);
+			level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1.0f, 0.6f);
+			return;
+		}
 		player.getInventory().placeItemBackInInventory(FishItem.create(stats));
 		player.sendSystemMessage(FishFight.tr("fishing.caught", stats.displayName(),
 				String.format(Locale.ROOT, "%.1f", stats.size()),

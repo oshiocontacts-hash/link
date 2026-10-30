@@ -90,6 +90,7 @@ public class SeahorseRenderer extends MobRenderer<BattleFishEntity, SeahorseMode
 	@Override
 	protected void setupRotations(BattleFishEntity entity, PoseStack poseStack, float bob, float yBodyRot, float partialTick, float scale) {
 		super.setupRotations(entity, poseStack, bob, yBodyRot, partialTick, scale);
+		BattleFishRenderer.homerunSpin(entity, poseStack, partialTick, 0.8f);
 		float growth = legGrowth(entity, partialTick);
 		if (growth > 0f) {
 			// 横倒しのまま、生えた脚の長さだけ持ち上がる

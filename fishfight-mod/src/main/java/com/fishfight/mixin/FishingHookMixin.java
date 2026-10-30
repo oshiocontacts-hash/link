@@ -1,6 +1,6 @@
 package com.fishfight.mixin;
 
-import com.fishfight.FishFight;
+import com.fishfight.FishFightConfig;
 import com.fishfight.fish.FishGenerator;
 import com.fishfight.fish.FishStats;
 import com.fishfight.fishing.FishingMinigameManager;
@@ -41,7 +41,7 @@ public abstract class FishingHookMixin {
 		if (!(self.getPlayerOwner() instanceof ServerPlayer player)) {
 			return;
 		}
-		if (player.getRandom().nextFloat() >= FishFight.MINIGAME_CHANCE) {
+		if (player.getRandom().nextFloat() * 100f >= FishFightConfig.get().minigameChance) {
 			return;
 		}
 		FishStats stats = FishGenerator.roll(player.getRandom(), self.level().getBiome(self.blockPosition()),

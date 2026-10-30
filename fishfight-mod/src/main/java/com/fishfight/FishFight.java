@@ -27,9 +27,6 @@ public class FishFight implements ModInitializer {
 	public static final String MOD_ID = "fishfight";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	/** バニラの釣り竿で魚がかかった時、ミニゲームになる確率（残りはバニラの釣果） */
-	public static final float MINIGAME_CHANCE = 0.85f;
-
 	/** 録画用デモモード（-Dfishfight.demo=true）。通常プレイでは常に false */
 	public static final boolean DEMO = Boolean.getBoolean("fishfight.demo");
 
@@ -60,7 +57,7 @@ public class FishFight implements ModInitializer {
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			FishingMinigameManager.clear();
-			FishBattleManager.clear();
+			FishBattleManager.clear(server);
 		});
 
 		// 魚を持って他のプレイヤーを右クリック → 勝負を挑む

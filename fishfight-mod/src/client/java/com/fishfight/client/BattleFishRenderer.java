@@ -48,9 +48,22 @@ public class BattleFishRenderer extends MobRenderer<BattleFishEntity, BattleFish
 		return 0f;
 	}
 
+	/** ホームランで吹っ飛ぶ時、体の真ん中を軸にぐるぐる回す（魚・馬・シャークマン共通） */
+	static void homerunSpin(BattleFishEntity entity, PoseStack poseStack, float partialTick, float centerHeight) {
+		if (entity.deathTime <= 0) {
+			return;
+		}
+		float t = entity.deathTime + partialTick;
+		poseStack.translate(0f, centerHeight, 0f);
+		poseStack.mulPose(Axis.YP.rotationDegrees(t * 47f));
+		poseStack.mulPose(Axis.XP.rotationDegrees(t * 31f));
+		poseStack.translate(0f, -centerHeight, 0f);
+	}
+
 	@Override
 	protected void setupRotations(BattleFishEntity entity, PoseStack poseStack, float bob, float yBodyRot, float partialTick, float scale) {
 		super.setupRotations(entity, poseStack, bob, yBodyRot, partialTick, scale);
+		homerunSpin(entity, poseStack, partialTick, 0.5f);
 		float width = entity.getSpecies().widthScale;
 
 		if (entity.transformAnim > 0) {

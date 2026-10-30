@@ -17,6 +17,12 @@ public class SharkManRenderer extends MobRenderer<BattleFishEntity, SharkManMode
 	}
 
 	@Override
+	protected void setupRotations(BattleFishEntity entity, PoseStack poseStack, float bob, float yBodyRot, float partialTick, float scale) {
+		super.setupRotations(entity, poseStack, bob, yBodyRot, partialTick, scale);
+		BattleFishRenderer.homerunSpin(entity, poseStack, partialTick, 1.0f);
+	}
+
+	@Override
 	protected void scale(BattleFishEntity entity, PoseStack poseStack, float partialTick) {
 		// 変身直後はボンッと膨らむように出てくる
 		if (entity.humanoidAnim > 0) {
