@@ -100,6 +100,11 @@ public class FishBattle {
 					.withStyle(ChatFormatting.GRAY));
 			announce(Component.literal("　").append(skillList(f.stats)));
 		}
+		for (Fighter f : fighters) {
+			if ("pinky_promise".equals(f.stats.species().uniqueAbility())) {
+				announce(FishFight.tr("battle.unique.pinky_promise.intro", f.name).withStyle(ChatFormatting.LIGHT_PURPLE));
+			}
+		}
 		commentate("start", true);
 		for (Fighter f : fighters) {
 			if (f.stats.species() == FishSpecies.SEAHORSE) {
@@ -223,7 +228,7 @@ public class FishBattle {
 		boolean bDown = fighters[1].defeated();
 		if (aDown || bDown) {
 			if (aDown && bDown) {
-				finish(fighters[0].hpRatio() >= fighters[1].hpRatio() ? fighters[0] : fighters[1]);
+				finishDraw();
 			} else {
 				finish(aDown ? fighters[1] : fighters[0]);
 			}
@@ -362,6 +367,22 @@ public class FishBattle {
 		if (loserPlayer != null && !knockout) {
 			title(loserPlayer, FishFight.tr("battle.defeat").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.BOLD), loser.name, 50);
 		}
+	}
+
+	/** 相討ち（ハリセンボンの針千本で両方倒れた等）。勝敗なし、命がけバトルでも誰も死なない */
+	private void finishDraw() {
+		if (state != State.FIGHT) {
+			return;
+		}
+		state = State.ENDING;
+		timer = 0;
+		winner = null;
+		for (int i = 0; i < 2; i++) {
+			bars[i].setProgress(0f);
+		}
+		announce(FishFight.tr("battle.draw").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
+		titleAll(FishFight.tr("battle.draw_title").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), Component.empty(), 50);
+		playSound(SoundEvents.ANVIL_LAND, 0.8f, 0.6f);
 	}
 
 	/** 勝った魚のアイテムに勝利数を記録する */

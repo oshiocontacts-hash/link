@@ -24,6 +24,18 @@ public enum FishSpecies implements StringRepresentable {
 	SEAHORSE("seahorse", Habitat.OCEAN, 8f, 0x8B5A2B, 12, 30, 60000f, 95, 17, 13, 20, 7, 1.5f, 1.0f, 1.0f, 1.0f, 1.0f),
 	// HPは多いのに、驚くとすぐ死ぬ
 	SUNFISH("sunfish", Habitat.OCEAN, 5f, 0xA9B4BE, 100, 330, 40f, 200, 10, 10, 6, 3, 1.0f, 1.15f, 0.5f, 2.2f, 0.6f),
+	// 当てるたびに出世して名前が変わる（ツバス→ハマチ→メジロ→ブリ）
+	YELLOWTAIL("yellowtail", Habitat.OCEAN, 10f, 0x6E8FB0, 30, 100, 12f, 80, 15, 12, 15, 6, 1.2f, 0.85f, 0.9f, 0.9f, 1.4f),
+	// 倒されると相手に針千本を飲ませる
+	PORCUPINEFISH("porcupinefish", Habitat.OCEAN, 6f, 0xC9B98A, 20, 50, 30f, 75, 11, 18, 9, 5, 1.1f, 0.75f, 1.4f, 1.3f, 0.9f),
+	// 攻撃すると相手が回復する。そのかわり相手は気持ちよすぎて昇天する
+	DOCTOR_FISH("doctor_fish", Habitat.FRESH, 8f, 0x8C8C7A, 5, 12, 15f, 60, 1, 10, 22, 0, 0.8f, 0.5f, 0.7f, 0.8f, 1.0f),
+	// 見た目はイワシの群れ
+	SARDINE("sardine", Habitat.OCEAN, 20f, 0x9FB4C8, 10, 25, 9f, 70, 7, 8, 24, 10, 1.0f, 0.4f, 0.7f, 0.7f, 1.1f),
+	// 地面から縦に生えていて動かない。近づくと引っ込む
+	GARDEN_EEL("garden_eel", Habitat.OCEAN, 7f, 0xE8E2C8, 30, 60, 1.5f, 75, 18, 12, 16, 10, 1.3f, 0.8f, 0.35f, 0.35f, 2.6f),
+	// 魚ではない
+	TAIYAKI("taiyaki", Habitat.ANY, 3f, 0xC98A3D, 12, 18, 30f, 55, 6, 6, 6, 0, 0.6f, 0.7f, 0.6f, 1.0f, 1.0f),
 	COELACANTH("coelacanth", Habitat.ANY, 0.8f, 0x3C4E7A, 100, 200, 17f, 140, 22, 22, 12, 8, 2.4f, 1.1f, 1.3f, 1.2f, 1.5f);
 
 	public static final Codec<FishSpecies> CODEC = StringRepresentable.fromEnum(FishSpecies::values);
@@ -85,6 +97,12 @@ public enum FishSpecies implements StringRepresentable {
 			case SHARK -> "shark_man";
 			case SEAHORSE -> "horsepower";
 			case SUNFISH -> "tofu_mental";
+			case YELLOWTAIL -> "promotion";
+			case PORCUPINEFISH -> "pinky_promise";
+			case DOCTOR_FISH -> "skin_care";
+			case SARDINE -> "school";
+			case GARDEN_EEL -> "hide";
+			case TAIYAKI -> "anko";
 			default -> null;
 		};
 	}

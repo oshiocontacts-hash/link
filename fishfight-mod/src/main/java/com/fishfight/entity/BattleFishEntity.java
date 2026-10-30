@@ -11,6 +11,7 @@ import com.fishfight.fish.Skill;
 import java.util.EnumSet;
 import java.util.Set;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -33,6 +34,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 /**
  * バトル用の魚モブ。相手を自分で追いかけて攻撃し、条件を満たすとスキルが自動で発動する。
@@ -57,6 +59,8 @@ public class BattleFishEntity extends PathfinderMob {
 	private static final EntityDataAccessor<Boolean> GOLDEN = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Boolean> PUFFED = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.BOOLEAN);
 	/** サメの固有能力で人型になったか */
+	/** チンアナゴが砂に引っ込んでいるか */
+	private static final EntityDataAccessor<Boolean> HIDDEN = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Boolean> HUMANOID = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.BOOLEAN);
 
 	/** 脚生えが発動するまでに跳ねる時間 */
@@ -104,6 +108,17 @@ public class BattleFishEntity extends PathfinderMob {
 	/** 覚醒の演出中は残りtick数 */
 	private int transformTicks;
 	private boolean transformed;
+	/** 腕のパンチ・イワシの噛みつき連打の1発の強さ */
+	private float punchPower = 0.5f;
+	/** ブリ：当てた回数と出世段階（0=ツバス〜3=ブリ） */
+	private int hitsLanded;
+	private int promotionStage;
+	/** ドクターフィッシュにつつかれた気持ちよさ */
+	private int relaxation;
+	/** ハリセンボン：針千本を飲ませたか */
+	private boolean needlesFired;
+	/** チンアナゴ：引っ込んでいる残りtick */
+	private int hideTicks;
 	private final Set<Skill> usedSkills = EnumSet.noneOf(Skill.class);
 
 	public BattleFishEntity(EntityType<? extends BattleFishEntity> type, Level level) {
@@ -129,6 +144,7 @@ public class BattleFishEntity extends PathfinderMob {
 		builder.define(GOLDEN, false);
 		builder.define(PUFFED, false);
 		builder.define(HUMANOID, false);
+		builder.define(HIDDEN, false);
 	}
 
 	/** バトル開始前にサーバー側で呼ぶ */
@@ -192,7 +208,15 @@ public class BattleFishEntity extends PathfinderMob {
 
 	/** 陸で脚がない＝跳ねている */
 	public boolean isFlopping() {
-		return !hasLegs() && !isInWater() && isAlive();
+		return !hasLegs() && !isInWater() && isAlive() && getSpecies() != FishSpecies.GARDEN_EEL;
+	}
+
+	public boolean isHiddenEel() {
+		return this.entityData.get(HIDDEN);
+	}
+
+	private boolean isUnique(String ability) {
+		return fighter != null && ability.equals(fighter.stats.species().uniqueAbility());
 	}
 
 	@Nullable
@@ -264,6 +288,22 @@ public class BattleFishEntity extends PathfinderMob {
 			return;
 		}
 
+		if (isUnique("hide")) {
+			// チンアナゴ：一歩も動かない。相手が近いとたまに砂に引っ込む
+			getNavigation().stop();
+			setDeltaMovement(0, getDeltaMovement().y, 0);
+			face(dir);
+			if (hideTicks > 0) {
+				if (--hideTicks == 0) {
+					this.entityData.set(HIDDEN, false);
+					playSound(SoundEvents.SHULKER_OPEN, 0.8f, 1.6f);
+				}
+			} else if (dist < 4.0 && random.nextFloat() < 0.012f) {
+				hide(40 + random.nextInt(30));
+			}
+			return;
+		}
+
 		if (isInWater()) {
 			// 水中：まっすぐ泳いで近づく
 			getNavigation().stop();
@@ -314,7 +354,8 @@ public class BattleFishEntity extends PathfinderMob {
 	}
 
 	private double reach() {
-		return (getBbWidth() + opponent.getBbWidth()) * 0.5 + 0.7;
+		// チンアナゴは長い体を伸ばして噛みつく
+		return (getBbWidth() + opponent.getBbWidth()) * 0.5 + (isUnique("hide") ? 1.9 : 0.7);
 	}
 
 	private void attack(double dist) {
@@ -323,7 +364,7 @@ public class BattleFishEntity extends PathfinderMob {
 				pendingPunches--;
 				punchDelay = 4;
 				if (dist <= reach() + 0.5) {
-					strike(0.5f, 0.95f, 0, true);
+					strike(punchPower, 0.95f, 0, true);
 				}
 			}
 			return;
@@ -332,13 +373,19 @@ public class BattleFishEntity extends PathfinderMob {
 			attackCooldown--;
 			return;
 		}
-		if (dist > reach()) {
+		if (dist > reach() || isHiddenEel()) {
 			return;
 		}
 		if (hasArms() && random.nextFloat() < 0.6f) {
 			// 腕があるとパンチ連打
 			pendingPunches = 2 + random.nextInt(2);
 			punchDelay = 0;
+			punchPower = 0.5f;
+		} else if (isUnique("school")) {
+			// イワシの群れ：小さな噛みつき4連発
+			pendingPunches = 4;
+			punchDelay = 0;
+			punchPower = 0.32f;
 		} else {
 			// 跳ねながらだと狙いが定まらない
 			strike(1.0f, isFlopping() ? 0.55f : 0.92f, 0, false);
@@ -349,6 +396,11 @@ public class BattleFishEntity extends PathfinderMob {
 	/** 1回分の攻撃。命中したら与えたダメージを返す */
 	private float strike(float power, float accuracy, int extraCrit, boolean punch) {
 		this.level().broadcastEntityEvent(this, EVENT_ATTACK);
+		if (isUnique("skin_care")) {
+			// ドクターフィッシュ：ダメージは与えず、相手の角質をケアする
+			skinCare();
+			return 0f;
+		}
 		if (random.nextFloat() > accuracy) {
 			playSound(SoundEvents.PLAYER_ATTACK_NODAMAGE, 0.8f, 1.2f);
 			return 0f;
@@ -358,6 +410,10 @@ public class BattleFishEntity extends PathfinderMob {
 		float dodge = 0.05f + Math.max(0f, (ds - as) / Math.max(1f, ds + as)) * 0.3f;
 		if (opponent.fighter != null && opponent.fighter.stats.has(Mutation.TINY)) {
 			dodge += 0.08f;
+		}
+		if (opponent.isUnique("school")) {
+			// 群れがパッと散ってかわす
+			dodge += 0.12f;
 		}
 		if (random.nextFloat() < Math.min(0.35f, dodge)) {
 			particles(opponent, ParticleTypes.CLOUD, 6);
@@ -378,6 +434,9 @@ public class BattleFishEntity extends PathfinderMob {
 			playSound(punch ? SoundEvents.PLAYER_ATTACK_KNOCKBACK : SoundEvents.PLAYER_ATTACK_STRONG, 0.8f, 1.1f);
 		}
 		float dealt = opponent.takeFishDamage(this, Math.max(1f, damage));
+		if (dealt > 0f && isUnique("promotion")) {
+			promote();
+		}
 		// マンボウの固有能力「豆腐メンタル」：殴られると驚いて死ぬことがある
 		if (dealt > 0f && opponent.isAlive() && opponent.isSunfish() && random.nextFloat() < (crit ? 0.3f : 0.06f)) {
 			opponent.dieOfShock();
@@ -397,6 +456,31 @@ public class BattleFishEntity extends PathfinderMob {
 
 	/** 相手の魚からの攻撃を受ける。ふくらむ・根性・トゲはここで処理 */
 	private float takeFishDamage(BattleFishEntity attacker, float amount) {
+		if (isHiddenEel()) {
+			// 砂の中にいるので当たらない
+			particles(this, ParticleTypes.CLOUD, 6);
+			playSound(SoundEvents.PLAYER_ATTACK_NODAMAGE, 0.8f, 0.8f);
+			return 0f;
+		}
+		if (isUnique("anko") && attacker.isAlive()) {
+			// タイ焼き：殴った相手が思わずかじる
+			amount *= 1.3f;
+			attacker.stun(25);
+			attacker.heal(attacker.getMaxHealth() * 0.03f);
+			attacker.updateName();
+			if (level() instanceof ServerLevel server) {
+				server.sendParticles(new DustParticleOptions(new Vector3f(0.35f, 0.12f, 0.1f), 1.5f),
+						getX(), getY() + getBbHeight() * 0.5, getZ(), 15, 0.3, 0.3, 0.3, 0.0);
+			}
+			playSound(SoundEvents.GENERIC_EAT, 1.0f, 1.0f);
+			if (random.nextFloat() < 0.5f && attacker.fighter != null && fighter != null) {
+				announce(null, Component.translatable("fishfight.battle.unique.anko", attacker.fighter.name, fighter.name)
+						.withStyle(ChatFormatting.GOLD));
+			}
+		}
+		if (isUnique("hide") && random.nextFloat() < 0.35f) {
+			hide(30 + random.nextInt(30));
+		}
 		if (transformTicks > 0) {
 			// 覚醒中は攻撃が効かない
 			particles(this, ParticleTypes.ENCHANTED_HIT, 8);
@@ -450,6 +534,9 @@ public class BattleFishEntity extends PathfinderMob {
 		}
 		boolean result = super.hurt(source, amount);
 		updateName();
+		if (isDeadOrDying() && isUnique("pinky_promise") && !needlesFired) {
+			swallowNeedles();
+		}
 		return result;
 	}
 
@@ -696,7 +783,9 @@ public class BattleFishEntity extends PathfinderMob {
 		ChatFormatting hpColor = ratio > 0.5f ? ChatFormatting.GREEN : ratio > 0.2f ? ChatFormatting.YELLOW : ChatFormatting.RED;
 		Component speciesName = isHumanoid()
 				? Component.translatable("fishfight.unique.shark_man.name").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD)
-				: fighter.stats.species().displayName().withStyle(fighter.stats.rarity().color);
+				: isUnique("promotion")
+						? Component.translatable("fishfight.unique.promotion.stage." + promotionStage).withStyle(fighter.stats.rarity().color)
+						: fighter.stats.species().displayName().withStyle(fighter.stats.rarity().color);
 		setCustomName(Component.empty()
 				.append(speciesName)
 				.append(Component.literal(" ❤ " + Mth.ceil(getHealth()) + "/" + Mth.ceil(getMaxHealth())).withStyle(hpColor)));
@@ -811,6 +900,77 @@ public class BattleFishEntity extends PathfinderMob {
 			playSound(SoundEvents.FIREWORK_ROCKET_TWINKLE, 2.0f, 1.0f);
 			remove(RemovalReason.KILLED);
 		}
+	}
+
+	// ---- 一発ネタ系の固有能力 ----
+
+	/** ブリ「出世魚」：当てるたびに出世して、名前・大きさ・強さが変わる */
+	private void promote() {
+		hitsLanded++;
+		int next = hitsLanded >= 9 ? 3 : hitsLanded >= 5 ? 2 : hitsLanded >= 2 ? 1 : 0;
+		if (next <= promotionStage) {
+			return;
+		}
+		Component from = Component.translatable("fishfight.unique.promotion.stage." + promotionStage);
+		promotionStage = next;
+		Component to = Component.translatable("fishfight.unique.promotion.stage." + promotionStage);
+		getAttribute(Attributes.SCALE).setBaseValue(getAttributeBaseValue(Attributes.SCALE) * 1.25);
+		atkMul *= 1.25f;
+		heal(getMaxHealth() * 0.15f);
+		updateName();
+		announce(null, Component.translatable("fishfight.battle.unique.promotion", fighter.name, from, to).withStyle(ChatFormatting.AQUA));
+		if (battle != null && promotionStage == 3) {
+			battle.titleAll(Component.translatable("fishfight.battle.unique.promotion.title").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
+					Component.empty().append(from).append(" → ").append(to), 30);
+		}
+		particles(this, ParticleTypes.HAPPY_VILLAGER, 15);
+		playSound(SoundEvents.PLAYER_LEVELUP, 0.8f, 1.2f + promotionStage * 0.1f);
+	}
+
+	/** ハリセンボン「指切りげんまん」：倒されたら約束どおり相手に針千本を飲ませる */
+	private void swallowNeedles() {
+		needlesFired = true;
+		if (opponent == null || !opponent.isAlive() || fighter == null || opponent.fighter == null) {
+			return;
+		}
+		announce(null, Component.translatable("fishfight.battle.unique.pinky_promise", opponent.fighter.name).withStyle(ChatFormatting.DARK_RED));
+		particles(opponent, ParticleTypes.CRIT, 60);
+		playSound(SoundEvents.PLAYER_ATTACK_CRIT, 1.0f, 0.6f);
+		opponent.invulnerableTime = 0;
+		opponent.hurt(damageSources().thorns(this), opponent.getMaxHealth() * 0.4f);
+	}
+
+	/** ドクターフィッシュ「角質ケア」：相手を回復させるが、気持ちよすぎると昇天させる */
+	private void skinCare() {
+		if (opponent == null || opponent.fighter == null) {
+			return;
+		}
+		opponent.heal(3f);
+		opponent.updateName();
+		opponent.relaxation++;
+		opponent.stun(8 + opponent.relaxation * 3);
+		particles(opponent, ParticleTypes.HEART, 3);
+		playSound(SoundEvents.GENERIC_DRINK, 0.6f, 1.6f);
+		if (opponent.relaxation == 3) {
+			announce(null, Component.translatable("fishfight.battle.unique.skin_care.relaxed", opponent.fighter.name).withStyle(ChatFormatting.LIGHT_PURPLE));
+		} else if (opponent.relaxation >= 8 && opponent.isAlive()) {
+			announce(null, Component.translatable("fishfight.battle.unique.skin_care.ascend", opponent.fighter.name)
+					.withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+			particles(opponent, ParticleTypes.END_ROD, 30);
+			playSound(SoundEvents.BEACON_POWER_SELECT, 1.0f, 1.5f);
+			opponent.hurt(damageSources().genericKill(), Float.MAX_VALUE);
+		}
+	}
+
+	/** チンアナゴ「ひっこむ」：しばらく砂の中に隠れて無敵になる */
+	private void hide(int ticks) {
+		if (isHiddenEel()) {
+			return;
+		}
+		hideTicks = ticks;
+		this.entityData.set(HIDDEN, true);
+		playSound(SoundEvents.SHULKER_CLOSE, 0.8f, 1.6f);
+		particles(this, ParticleTypes.POOF, 6);
 	}
 
 	private boolean isSeahorse() {

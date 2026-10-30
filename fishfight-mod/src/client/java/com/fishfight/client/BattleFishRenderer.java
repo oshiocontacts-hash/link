@@ -18,6 +18,8 @@ public class BattleFishRenderer extends MobRenderer<BattleFishEntity, BattleFish
 	private final SharkManRenderer sharkMan;
 	/** シーホース（見た目は馬） */
 	private final SeahorseRenderer seahorse;
+	/** イワシの群れの2匹目以降を描く間は名前を出さない */
+	private boolean hideName;
 
 	public BattleFishRenderer(EntityRendererProvider.Context context) {
 		super(context, new BattleFishModel(context.bakeLayer(BattleFishModel.LAYER)), 0.4f);
@@ -36,6 +38,29 @@ public class BattleFishRenderer extends MobRenderer<BattleFishEntity, BattleFish
 			return;
 		}
 		super.render(entity, entityYaw, partialTick, poseStack, buffer, packedLight);
+		if (entity.getSpecies() == FishSpecies.SARDINE) {
+			renderSchool(entity, entityYaw, partialTick, poseStack, buffer, packedLight);
+		}
+	}
+
+	/** イワシは1匹のモブだが、群れに見えるようにまわりをぐるぐる回る13匹を足して描く */
+	private void renderSchool(BattleFishEntity entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
+		float age = entity.tickCount + partialTick;
+		hideName = true;
+		for (int i = 0; i < 13; i++) {
+			float angle = age * 0.12f + i * 2.4f;
+			float radius = 0.35f + (i % 3) * 0.22f;
+			poseStack.pushPose();
+			poseStack.translate(Mth.cos(angle) * radius, 0.1f + (i % 4) * 0.13f + Mth.sin(age * 0.2f + i) * 0.1f, Mth.sin(angle) * radius);
+			super.render(entity, entityYaw, partialTick, poseStack, buffer, packedLight);
+			poseStack.popPose();
+		}
+		hideName = false;
+	}
+
+	@Override
+	protected boolean shouldShowName(BattleFishEntity entity) {
+		return !hideName && super.shouldShowName(entity);
 	}
 
 	@Override
@@ -72,6 +97,15 @@ public class BattleFishRenderer extends MobRenderer<BattleFishEntity, BattleFish
 			poseStack.translate(0f, 0.3f + p * 0.6f, 0f);
 			poseStack.mulPose(Axis.YP.rotationDegrees(p * p * 1440f));
 			poseStack.mulPose(Axis.XP.rotationDegrees(-60f));
+			return;
+		}
+
+		if (entity.getSpecies() == FishSpecies.GARDEN_EEL && entity.deathTime <= 0) {
+			// チンアナゴ：地面から縦に生えてゆらゆら。引っ込むと砂に沈む
+			float sway = Mth.sin((entity.tickCount + partialTick) * 0.15f) * 8f;
+			poseStack.translate(0f, entity.isHiddenEel() ? -0.8f : 0.5f, 0f);
+			poseStack.mulPose(Axis.XP.rotationDegrees(90f + sway));
+			poseStack.translate(0f, -0.5f, 0f);
 			return;
 		}
 

@@ -167,7 +167,13 @@ public final class FishFightCommand {
 			new String[] {"tuna", "rare", "arm_sprout leg_sprout"},
 			new String[] {"pufferfish", "rare", "puff_up arm_sprout"},
 			new String[] {"catfish", "epic", "discharge leg_sprout"},
-			new String[] {"coelacanth", "legendary", "leg_sprout endure"});
+			new String[] {"coelacanth", "legendary", "leg_sprout endure"},
+			new String[] {"yellowtail", "rare", ""},
+			new String[] {"porcupinefish", "rare", ""},
+			new String[] {"doctor_fish", "epic", ""},
+			new String[] {"sardine", "rare", ""},
+			new String[] {"garden_eel", "rare", ""},
+			new String[] {"taiyaki", "common", ""});
 
 	private static int kit(CommandSourceStack source) throws CommandSyntaxException {
 		ServerPlayer player = source.getPlayerOrException();

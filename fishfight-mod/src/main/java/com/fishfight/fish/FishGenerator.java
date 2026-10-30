@@ -160,6 +160,11 @@ public final class FishGenerator {
 			case COELACANTH -> EnumSet.of(Skill.ENDURE, Skill.LEG_SPROUT);
 			case SEAHORSE -> EnumSet.of(Skill.LEG_SPROUT, Skill.CHARGE);
 			case SUNFISH -> EnumSet.of(Skill.REGENERATE);
+			case YELLOWTAIL -> EnumSet.of(Skill.CHARGE);
+			case PORCUPINEFISH -> EnumSet.of(Skill.PUFF_UP);
+			case DOCTOR_FISH -> EnumSet.of(Skill.REGENERATE);
+			case SARDINE -> EnumSet.of(Skill.WATER_GUN);
+			case GARDEN_EEL, TAIYAKI -> EnumSet.noneOf(Skill.class);
 		};
 	}
 

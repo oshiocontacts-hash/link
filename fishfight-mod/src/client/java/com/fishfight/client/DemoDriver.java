@@ -22,7 +22,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
@@ -37,7 +36,7 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
  */
 final class DemoDriver {
 	private static final String WORLD = "fishfight-demo";
-	private static final int MAX_TICKS = 20 * 60 * 7;
+	private static final int MAX_TICKS = 20 * 60 * 9;
 	/** 実時間で10fps。スローモーション中もそのまま遅く見えるように、tickではなく実時間で数える */
 	private static final long FRAME_MILLIS = 100;
 	private static long recordStart;
@@ -92,49 +91,34 @@ final class DemoDriver {
 			command(mc, "give @s minecraft:fishing_rod");
 			mc.player.getInventory().selected = 0;
 		});
-		step("cast 1", 30, mc -> true, DemoDriver::cast);
-		step("catch shark", 60, mc -> true, mc -> command(mc, "fishfight testcatch seahorse rare leg_sprout charge"));
-		step("wait minigame 1", 40, mc -> mc.screen == null, mc -> { });
-		step("cast 2", 50, mc -> true, DemoDriver::cast);
-		step("catch tuna", 60, mc -> true, mc -> command(mc, "fishfight testcatch shark rare charge"));
-		step("wait minigame 2", 40, mc -> mc.screen == null, mc -> { });
-		// 持ち替えはサーバーに次のtickで届くので、コマンドとは別のステップにする
-		step("select seahorse", 40, mc -> true, mc -> select(mc, FishSpecies.SEAHORSE));
-		step("show tuna", 10, mc -> true, mc -> {
-			mc.gui.getChat().clearMessages(false);
-			command(mc, "fishfight info");
+		step("cast", 30, mc -> true, DemoDriver::cast);
+		step("catch taiyaki", 60, mc -> true, mc -> command(mc, "fishfight testcatch taiyaki common"));
+		step("wait minigame", 40, mc -> mc.screen == null, mc -> { });
+		step("give fish", 40, mc -> true, mc -> {
+			command(mc, "fishfight give porcupinefish common");
+			command(mc, "fishfight give doctor_fish legendary");
 		});
-		step("battle 1", 120, mc -> true, mc -> {
-			mc.gui.getChat().clearMessages(false);
-			command(mc, "tp @s ~ ~ ~ 0 18");
-			// シーホース（どう見ても馬） vs マンボウ（豆腐メンタル）
-			command(mc, "fishfight practice sunfish rare");
-			battleTicks = 0;
-		});
-		step("empty hand 1", 10, mc -> true, DemoDriver::stepBack);
-		step("wait battle 1", 100, DemoDriver::battleOver, mc -> { });
-		step("select shark", 40, mc -> true, mc -> select(mc, FishSpecies.SHARK));
-		step("zombie", 10, mc -> true, mc -> {
-			mc.gui.getChat().clearMessages(false);
-			// バトル1で下がった分を戻し、目の前にゾンビを出す（ヘルメットで日光に燃えないように）
-			command(mc, "tp @s ~ ~ ~2 0 10");
-			command(mc, "difficulty easy");
-			command(mc, "summon minecraft:zombie ~ ~ ~2.5 {PersistenceRequired:1b,Rotation:[180f,0f],"
-					+ "ArmorItems:[{},{},{},{id:\"minecraft:leather_helmet\",count:1}]}");
-		});
-		step("battle 2", 30, mc -> true, mc -> {
-			// サメを持ってゾンビを右クリック → 負けた方が死ぬ魚バトル
-			for (Entity entity : mc.level.entitiesForRendering()) {
-				if (entity instanceof Zombie zombie) {
-					mc.gameMode.interact(mc.player, zombie, InteractionHand.MAIN_HAND);
-					break;
-				}
-			}
-			battleTicks = 0;
-		});
-		step("empty hand 2", 10, mc -> true, DemoDriver::stepBack);
-		step("wait battle 2", 100, DemoDriver::battleOver, mc -> { });
+		// ハリセンボン vs イワシの群れ（倒されたら針千本）
+		battle(1, FishSpecies.PORCUPINEFISH, "sardine epic");
+		// ドクターフィッシュ vs チンアナゴ（回復させて昇天させる／地面から動かない）
+		battle(2, FishSpecies.DOCTOR_FISH, "garden_eel common");
+		// タイ焼き vs ブリ（かじられる／出世する）
+		battle(3, FishSpecies.TAIYAKI, "yellowtail rare");
 		step("finish", 40, mc -> true, DemoDriver::finish);
+	}
+
+	/** 手持ちの魚を選んで、指定した相手と練習試合し、終わるまで待つ */
+	private static void battle(int n, FishSpecies mine, String opponent) {
+		step("select " + n, 40, mc -> true, mc -> select(mc, mine));
+		step("battle " + n, 10, mc -> true, mc -> {
+			mc.gui.getChat().clearMessages(false);
+			// 前のバトルで下がった分を戻してから始める
+			command(mc, n == 1 ? "tp @s ~ ~ ~ 0 18" : "tp @s ~ ~ ~2 0 18");
+			command(mc, "fishfight practice " + opponent);
+			battleTicks = 0;
+		});
+		step("step back " + n, 10, mc -> true, DemoDriver::stepBack);
+		step("wait battle " + n, 100, DemoDriver::battleOver, mc -> { });
 	}
 
 	private static void step(String name, int delay, Predicate<Minecraft> ready, Consumer<Minecraft> action) {
