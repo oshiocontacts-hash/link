@@ -12,6 +12,7 @@ public class FishFightClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		EntityModelLayerRegistry.registerModelLayer(BattleFishModel.LAYER, BattleFishModel::createBodyLayer);
+		EntityModelLayerRegistry.registerModelLayer(SharkManModel.LAYER, SharkManModel::createBodyLayer);
 		EntityRendererRegistry.register(ModEntities.BATTLE_FISH, BattleFishRenderer::new);
 
 		ClientPlayNetworking.registerGlobalReceiver(StartMinigamePayload.TYPE, (payload, context) ->

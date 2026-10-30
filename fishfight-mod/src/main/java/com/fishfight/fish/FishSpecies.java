@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.StringRepresentable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 魚の種類。基礎ステータス・生息地・釣りやすさ・見た目の比率を持つ。
@@ -71,6 +72,12 @@ public enum FishSpecies implements StringRepresentable {
 
 	public MutableComponent displayName() {
 		return Component.translatable("item.fishfight." + id);
+	}
+
+	/** 種類ごとの固有能力（あれば）。サメは「シャークマン覚醒」 */
+	@Nullable
+	public String uniqueAbility() {
+		return this == SHARK ? "shark_man" : null;
 	}
 
 	public static FishSpecies byId(String id) {

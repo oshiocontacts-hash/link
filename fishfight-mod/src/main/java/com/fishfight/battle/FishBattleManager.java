@@ -161,8 +161,8 @@ public final class FishBattleManager {
 		}
 	}
 
-	/** 野生の魚と練習試合 */
-	public static void practice(ServerPlayer player) {
+	/** 野生の魚と練習試合。相手を指定しなければランダム */
+	public static void practice(ServerPlayer player, @Nullable FishStats opponent) {
 		FishStats mine = heldFish(player);
 		if (mine == null) {
 			fail(player, "battle.err.no_fish");
@@ -173,9 +173,12 @@ public final class FishBattleManager {
 			return;
 		}
 		RandomSource random = player.getRandom();
-		FishRarity rarity = FishRarity.byOrdinal(mine.rarity().ordinal() + random.nextInt(3) - 1);
-		FishSpecies species = FishSpecies.values()[random.nextInt(FishSpecies.values().length)];
-		FishStats wild = FishGenerator.generate(random, species, rarity, "");
+		FishStats wild = opponent;
+		if (wild == null) {
+			FishRarity rarity = FishRarity.byOrdinal(mine.rarity().ordinal() + random.nextInt(3) - 1);
+			FishSpecies species = FishSpecies.values()[random.nextInt(FishSpecies.values().length)];
+			wild = FishGenerator.generate(random, species, rarity, "");
+		}
 
 		Vec3 look = player.getLookAngle();
 		Vec3 forward = new Vec3(look.x, 0, look.z);

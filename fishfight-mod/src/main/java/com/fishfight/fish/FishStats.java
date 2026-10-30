@@ -114,6 +114,14 @@ public record FishStats(
 		lines.add(Component.translatable("fishfight.tooltip.stats1", hp, atk, def).withStyle(ChatFormatting.WHITE));
 		lines.add(Component.translatable("fishfight.tooltip.stats2", spd, crit).withStyle(ChatFormatting.WHITE));
 		lines.add(Component.translatable("fishfight.tooltip.power", power()).withStyle(ChatFormatting.GOLD));
+		if (species.uniqueAbility() != null) {
+			String unique = species.uniqueAbility();
+			lines.add(Component.translatable("fishfight.tooltip.unique",
+					Component.translatable("fishfight.unique." + unique).withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD))
+					.withStyle(ChatFormatting.GRAY));
+			lines.add(Component.literal(" ").append(Component.translatable("fishfight.unique." + unique + ".desc"))
+					.withStyle(ChatFormatting.DARK_GRAY));
+		}
 		if (!mutations.isEmpty()) {
 			lines.add(Component.translatable("fishfight.tooltip.mutations", join(mutations.stream().map(Mutation::displayName).toList()))
 					.withStyle(ChatFormatting.GRAY));

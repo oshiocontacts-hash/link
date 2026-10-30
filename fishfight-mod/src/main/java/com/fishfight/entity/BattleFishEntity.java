@@ -23,9 +23,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
@@ -44,6 +46,9 @@ public class BattleFishEntity extends PathfinderMob {
 	public static final byte EVENT_ATTACK = 100;
 	public static final byte EVENT_SPROUT_ARMS = 102;
 	public static final byte EVENT_SPROUT_LEGS = 103;
+	public static final byte EVENT_TRANSFORM = 104;
+	/** 覚醒の演出にかかる時間 */
+	public static final int TRANSFORM_TICKS = 40;
 
 	private static final EntityDataAccessor<String> SPECIES = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.STRING);
 	private static final EntityDataAccessor<Integer> RARITY = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.INT);
@@ -51,6 +56,8 @@ public class BattleFishEntity extends PathfinderMob {
 	private static final EntityDataAccessor<Boolean> LEGS = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Boolean> GOLDEN = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Boolean> PUFFED = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.BOOLEAN);
+	/** サメの固有能力で人型になったか */
+	private static final EntityDataAccessor<Boolean> HUMANOID = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.BOOLEAN);
 
 	/** 脚生えが発動するまでに跳ねる時間 */
 	private static final int FLOP_TICKS_FOR_LEGS = 60;
@@ -58,11 +65,14 @@ public class BattleFishEntity extends PathfinderMob {
 	private static final double ARENA_RADIUS = 6.0;
 	/** バトルの中心からこれ以上離れたら引き戻す */
 	private static final double LEASH = 14.0;
+	private static final EntityDimensions HUMANOID_DIMENSIONS = EntityDimensions.scalable(0.9f, 1.95f);
 
 	// ---- クライアント側のアニメーション ----
 	public int attackAnim;
 	public int armsSproutAnim;
 	public int legsSproutAnim;
+	public int transformAnim;
+	public int humanoidAnim;
 	public boolean punchLeft;
 
 	// ---- サーバー側の状態 ----
@@ -89,6 +99,9 @@ public class BattleFishEntity extends PathfinderMob {
 	private int chargeCooldown = 40;
 	private int waterGunCooldown = 50;
 	private int puffCooldown;
+	/** 覚醒の演出中は残りtick数 */
+	private int transformTicks;
+	private boolean transformed;
 	private final Set<Skill> usedSkills = EnumSet.noneOf(Skill.class);
 
 	public BattleFishEntity(EntityType<? extends BattleFishEntity> type, Level level) {
@@ -113,6 +126,7 @@ public class BattleFishEntity extends PathfinderMob {
 		builder.define(LEGS, false);
 		builder.define(GOLDEN, false);
 		builder.define(PUFFED, false);
+		builder.define(HUMANOID, false);
 	}
 
 	/** バトル開始前にサーバー側で呼ぶ */
@@ -170,6 +184,10 @@ public class BattleFishEntity extends PathfinderMob {
 		return this.entityData.get(PUFFED);
 	}
 
+	public boolean isHumanoid() {
+		return this.entityData.get(HUMANOID);
+	}
+
 	/** 陸で脚がない＝跳ねている */
 	public boolean isFlopping() {
 		return !hasLegs() && !isInWater() && isAlive();
@@ -194,6 +212,10 @@ public class BattleFishEntity extends PathfinderMob {
 			return;
 		}
 		tickCooldowns();
+		if (transformTicks > 0) {
+			tickTransform();
+			return;
+		}
 		if (battle != null && position().distanceTo(battle.center()) > LEASH) {
 			Vec3 c = battle.center();
 			teleportTo(c.x + random.nextGaussian(), c.y, c.z + random.nextGaussian());
@@ -357,6 +379,15 @@ public class BattleFishEntity extends PathfinderMob {
 
 	/** 相手の魚からの攻撃を受ける。ふくらむ・根性・トゲはここで処理 */
 	private float takeFishDamage(BattleFishEntity attacker, float amount) {
+		if (transformTicks > 0) {
+			// 覚醒中は攻撃が効かない
+			particles(this, ParticleTypes.ENCHANTED_HIT, 8);
+			return 0f;
+		}
+		if (canTransform() && amount >= getHealth()) {
+			// 死の淵で覚醒する：HP1で踏みとどまり、次のtickで覚醒
+			amount = Math.max(0f, getHealth() - 1f);
+		}
 		if (fighter != null) {
 			if (fighter.stats.has(Skill.PUFF_UP) && puffCooldown <= 0 && getHealth() < getMaxHealth() * 0.8f) {
 				puffTicks = 100;
@@ -387,8 +418,17 @@ public class BattleFishEntity extends PathfinderMob {
 	public boolean hurt(DamageSource source, float amount) {
 		// バトル相手の攻撃と /kill 以外は受け付けない（プレイヤーが殴っても効かない）
 		boolean fromOpponent = opponent != null && (source.getEntity() == opponent || source.getDirectEntity() == opponent);
-		if (!fromOpponent && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+		boolean bypass = source.is(DamageTypeTags.BYPASSES_INVULNERABILITY);
+		if (!fromOpponent && !bypass) {
 			return false;
+		}
+		if (!bypass) {
+			if (transformTicks > 0) {
+				return false;
+			}
+			if (canTransform() && amount >= getHealth()) {
+				amount = Math.max(0f, getHealth() - 1f);
+			}
 		}
 		boolean result = super.hurt(source, amount);
 		updateName();
@@ -405,6 +445,11 @@ public class BattleFishEntity extends PathfinderMob {
 	private void triggerSkills(double dist) {
 		FishStats stats = fighter.stats;
 		float ratio = getHealth() / getMaxHealth();
+
+		if (canTransform() && ratio <= 0.2f) {
+			startTransform();
+			return;
+		}
 
 		if (stats.has(Skill.ARM_SPROUT) && !hasArms() && ratio <= 0.5f) {
 			sproutArms();
@@ -500,6 +545,101 @@ public class BattleFishEntity extends PathfinderMob {
 		}
 	}
 
+	// ---- サメの固有能力「シャークマン覚醒」 ----
+
+	private boolean canTransform() {
+		return fighter != null && fighter.stats.species().uniqueAbility() != null && !transformed && isAlive();
+	}
+
+	private void startTransform() {
+		transformed = true;
+		transformTicks = TRANSFORM_TICKS;
+		getNavigation().stop();
+		setNoGravity(true);
+		setDeltaMovement(0, 0.05, 0);
+		if (opponent != null) {
+			opponent.stun(TRANSFORM_TICKS + 5);
+		}
+		this.level().broadcastEntityEvent(this, EVENT_TRANSFORM);
+		announce(null, Component.translatable("fishfight.battle.unique.shark_man.start", fighter.name).withStyle(ChatFormatting.DARK_RED));
+		if (battle != null) {
+			battle.titleAll(Component.literal("！？").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD),
+					Component.translatable("fishfight.battle.unique.shark_man.start_title", fighter.stats.species().displayName())
+							.withStyle(ChatFormatting.RED), 40);
+		}
+		playSound(SoundEvents.ELDER_GUARDIAN_CURSE, 1.0f, 0.8f);
+		playSound(SoundEvents.BEACON_ACTIVATE, 1.0f, 0.5f);
+	}
+
+	private void tickTransform() {
+		transformTicks--;
+		getNavigation().stop();
+		setDeltaMovement(0, transformTicks > TRANSFORM_TICKS / 2 ? 0.04 : 0.0, 0);
+		if (level() instanceof ServerLevel server) {
+			// 体のまわりを光がぐるぐる回る
+			double angle = transformTicks * 0.6;
+			for (int i = 0; i < 3; i++) {
+				double a = angle + i * Math.PI * 2 / 3;
+				server.sendParticles(ParticleTypes.END_ROD, getX() + Math.cos(a) * 1.2, getY() + 0.5 + (TRANSFORM_TICKS - transformTicks) * 0.04,
+						getZ() + Math.sin(a) * 1.2, 1, 0, 0, 0, 0);
+			}
+			if (transformTicks % 8 == 0) {
+				server.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 1, getZ(), 15, 0.5, 0.8, 0.5, 0.2);
+			}
+		}
+		if (transformTicks == 10) {
+			playSound(SoundEvents.LIGHTNING_BOLT_THUNDER, 1.0f, 1.2f);
+		}
+		if (transformTicks <= 0) {
+			completeTransform();
+		}
+	}
+
+	private void completeTransform() {
+		setNoGravity(false);
+		this.entityData.set(HUMANOID, true);
+		this.entityData.set(ARMS, true);
+		this.entityData.set(LEGS, true);
+		refreshDimensions();
+		atkMul *= 2f;
+		spdMul *= 1.3f;
+		cooldownMul *= 0.8f;
+		getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(getAttributeBaseValue(Attributes.MOVEMENT_SPEED) * 1.4);
+		heal(getMaxHealth() * 0.3f);
+		updateName();
+		if (level() instanceof ServerLevel server) {
+			server.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 1, getZ(), 1, 0, 0, 0, 0);
+			server.sendParticles(ParticleTypes.FLASH, getX(), getY() + 1, getZ(), 1, 0, 0, 0, 0);
+			server.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, getX(), getY() + 1, getZ(), 80, 0.6, 1.0, 0.6, 0.5);
+		}
+		playSound(SoundEvents.DRAGON_FIREBALL_EXPLODE, 1.0f, 0.7f);
+		playSound(SoundEvents.TOTEM_USE, 1.0f, 1.0f);
+		playSound(SoundEvents.RAVAGER_ROAR, 1.0f, 0.6f);
+		announce(null, Component.translatable("fishfight.battle.unique.shark_man.done", fighter.name)
+				.withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD));
+		if (battle != null) {
+			battle.titleAll(Component.translatable("fishfight.battle.unique.shark_man.done_title").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD),
+					Component.translatable("fishfight.battle.unique.shark_man.done_subtitle").withStyle(ChatFormatting.GOLD), 50);
+		}
+	}
+
+	@Override
+	public EntityDimensions getDefaultDimensions(Pose pose) {
+		// 人型になったら背が高くなる
+		return isHumanoid() ? HUMANOID_DIMENSIONS : super.getDefaultDimensions(pose);
+	}
+
+	@Override
+	public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+		super.onSyncedDataUpdated(key);
+		if (HUMANOID.equals(key)) {
+			refreshDimensions();
+			if (level().isClientSide && isHumanoid()) {
+				humanoidAnim = 20;
+			}
+		}
+	}
+
 	// ---- ステータス ----
 
 	private float atk() {
@@ -520,8 +660,11 @@ public class BattleFishEntity extends PathfinderMob {
 		}
 		float ratio = getHealth() / getMaxHealth();
 		ChatFormatting hpColor = ratio > 0.5f ? ChatFormatting.GREEN : ratio > 0.2f ? ChatFormatting.YELLOW : ChatFormatting.RED;
+		Component speciesName = isHumanoid()
+				? Component.translatable("fishfight.unique.shark_man.name").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD)
+				: fighter.stats.species().displayName().withStyle(fighter.stats.rarity().color);
 		setCustomName(Component.empty()
-				.append(fighter.stats.species().displayName().withStyle(fighter.stats.rarity().color))
+				.append(speciesName)
 				.append(Component.literal(" ❤ " + Mth.ceil(getHealth()) + "/" + Mth.ceil(getMaxHealth())).withStyle(hpColor)));
 	}
 
@@ -551,6 +694,8 @@ public class BattleFishEntity extends PathfinderMob {
 			if (attackAnim > 0) attackAnim--;
 			if (armsSproutAnim > 0) armsSproutAnim--;
 			if (legsSproutAnim > 0) legsSproutAnim--;
+			if (transformAnim > 0) transformAnim--;
+			if (humanoidAnim > 0) humanoidAnim--;
 		} else if (battle == null && this.tickCount > 5) {
 			// バトルに属していない（ワールド読み込みで復活した等）なら消す
 			this.discard();
@@ -566,6 +711,7 @@ public class BattleFishEntity extends PathfinderMob {
 			}
 			case EVENT_SPROUT_ARMS -> armsSproutAnim = 20;
 			case EVENT_SPROUT_LEGS -> legsSproutAnim = 20;
+			case EVENT_TRANSFORM -> transformAnim = TRANSFORM_TICKS;
 			default -> super.handleEntityEvent(id);
 		}
 	}

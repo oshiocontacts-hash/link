@@ -67,10 +67,20 @@ public final class FishFightCommand {
 					FishBattleManager.deny(ctx.getSource().getPlayerOrException());
 					return 1;
 				}))
-				.then(Commands.literal("practice").executes(ctx -> {
-					FishBattleManager.practice(ctx.getSource().getPlayerOrException());
-					return 1;
-				}))
+				.then(Commands.literal("practice")
+						.executes(ctx -> {
+							FishBattleManager.practice(ctx.getSource().getPlayerOrException(), null);
+							return 1;
+						})
+						.then(Commands.argument("species", StringArgumentType.word()).suggests(SPECIES)
+								.executes(ctx -> practice(ctx, StringArgumentType.getString(ctx, "species"), null, null))
+								.then(Commands.argument("rarity", StringArgumentType.word()).suggests(RARITIES)
+										.executes(ctx -> practice(ctx, StringArgumentType.getString(ctx, "species"),
+												StringArgumentType.getString(ctx, "rarity"), null))
+										.then(Commands.argument("extras", StringArgumentType.greedyString()).suggests(EXTRAS)
+												.executes(ctx -> practice(ctx, StringArgumentType.getString(ctx, "species"),
+														StringArgumentType.getString(ctx, "rarity"),
+														StringArgumentType.getString(ctx, "extras")))))))
 				.then(Commands.literal("info").executes(ctx -> info(ctx.getSource())))
 				.then(Commands.literal("give")
 						.requires(source -> source.hasPermission(2))
@@ -131,6 +141,15 @@ public final class FishFightCommand {
 		FishStats stats = rollFish(player, speciesId, rarityId, extras);
 		player.getInventory().placeItemBackInInventory(FishItem.create(stats));
 		ctx.getSource().sendSuccess(() -> FishFight.tr("command.given", stats.displayName()), false);
+		return 1;
+	}
+
+	private static int practice(CommandContext<CommandSourceStack> ctx, String speciesId, @Nullable String rarityId,
+			@Nullable String extras) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		FishStats wild = rollFish(player, speciesId, rarityId, extras);
+		FishBattleManager.practice(player, new FishStats(wild.species(), wild.rarity(), wild.size(), wild.weight(), wild.hp(),
+				wild.atk(), wild.def(), wild.spd(), wild.crit(), wild.personality(), wild.mutations(), wild.skills(), "", 0));
 		return 1;
 	}
 

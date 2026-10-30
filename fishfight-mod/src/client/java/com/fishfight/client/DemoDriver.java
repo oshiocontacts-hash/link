@@ -91,7 +91,7 @@ final class DemoDriver {
 			mc.player.getInventory().selected = 0;
 		});
 		step("cast 1", 30, mc -> true, DemoDriver::cast);
-		step("catch shark", 60, mc -> true, mc -> command(mc, "fishfight testcatch shark epic arms charge frenzy"));
+		step("catch shark", 60, mc -> true, mc -> command(mc, "fishfight testcatch shark rare charge"));
 		step("wait minigame 1", 40, mc -> mc.screen == null, mc -> { });
 		step("cast 2", 50, mc -> true, DemoDriver::cast);
 		step("catch tuna", 60, mc -> true, mc -> command(mc, "fishfight testcatch tuna rare arm_sprout leg_sprout"));
@@ -113,7 +113,8 @@ final class DemoDriver {
 		step("select shark", 40, mc -> true, mc -> select(mc, FishSpecies.SHARK));
 		step("battle 2", 10, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
-			command(mc, "fishfight practice");
+			// 強い相手と戦わせて、サメを追い詰めて覚醒させる
+			command(mc, "fishfight practice coelacanth legendary arm_sprout regenerate");
 			battleTicks = 0;
 		});
 		step("empty hand 2", 10, mc -> true, mc -> mc.player.getInventory().selected = 8);
