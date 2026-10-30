@@ -123,5 +123,5 @@
   "fishfight.help.accept": "/fishfight accept ／ deny … 勝負を受ける／断る",
   "fishfight.help.practice": "/fishfight practice … 野生の魚と練習試合",
   "fishfight.help.info": "/fishfight info … 持っている魚のステータスを表示",
-  "fishfight.help.give": "/fishfight give [種類] [レア度] [体質] … （OP用）魚をもらう"
+  "fishfight.help.give": "/fishfight give [種類] [レア度] [体質・スキル…] … （OP用）魚をもらう"
 }

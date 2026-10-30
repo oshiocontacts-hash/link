@@ -569,11 +569,6 @@ public class BattleFishEntity extends PathfinderMob {
 	}
 
 	@Override
-	public boolean canBreatheUnderwater() {
-		return true;
-	}
-
-	@Override
 	public boolean removeWhenFarAway(double distance) {
 		return false;
 	}
