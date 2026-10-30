@@ -3,10 +3,9 @@
 暗いインダストリアルなアリーナで、ネオンのチームカラーがぶつかる 2〜4 人 × 2 チームの対戦 mod です。
 1 ラウンド 90 秒、3 本先取。ハンドガン（TaCZ）と一撃必殺の剣、ブリンク、パリィ、切り札で戦います。
 
-> **現状（重要）**: この開発環境では `maven.minecraftforge.net`・Mojang（`piston-meta` / `libraries.minecraft.net` など）・
-> CurseMaven / CurseForge / Modrinth がネットワークポリシーで拒否されたため、**Forge mod 部分はビルドも起動もできていません**。
-> Minecraft に依存しないゲームロジック（`core/`）はビルドとユニットテスト（113 件）が全部通っています。
-> 詳細は [テストレポート](docs/TEST_REPORT.md) と下の「判断ログ」を参照してください。
+> **現状**: 開発環境からは Forge Maven・Mojang・CurseForge に届かないため、実機のビルド・GameTest・起動と録画は GitHub Actions で行っています。
+> ビルド成功、ユニットテスト 113 件・GameTest 7 件すべて成功、Xvfb 上の `runClient` で 3 ラウンドの試合を自動プレイして録画済み
+> （`neonclash-demo-media` ブランチ）。詳細は [テストレポート](docs/TEST_REPORT.md) と下の「判断ログ」を参照してください。
 
 ## 遊び方
 
@@ -141,7 +140,7 @@ python3 ci/groove.py --duration 90 --beat-json run/demo_beat.json --out bgm.wav 
    使ったのは `GunFireEvent` / `EntityHurtByGunEvent.Pre` / `.Post` / `EntityKillByGunEvent` / `AmmoHitBlockEvent` / `IGunOperator` /
    `GunItemBuilder` / `AmmoItemBuilder` / `EntityKineticBullet` / `IGun.getIGunOrNull` です。
    2026-10-18 に追加された `GunFirePostEvent` は配布版に入っていない可能性があるため使わず、2024 年から存在する API だけに限定しました。
-6. **TaCZ の CurseForge File ID は未確定。** CurseForge に到達できず「最新の 1.20.1 版」を特定できないため、推測で ID を書かず
+6. **TaCZ の CurseForge File ID は未確定。** GitHub Actions では Modrinth（`timeless-and-classics-zero`）から最新の Forge 1.20.1 リリースを取っている（1.1.8-hotfix2 で動作確認）。 CurseForge に到達できず「最新の 1.20.1 版」を特定できないため、推測で ID を書かず
    `gradle.properties` の `tacz_curse_file_id` を空にして、未設定ならビルドが分かりやすいメッセージで止まるようにしました。
    プロジェクトのスラッグ `timeless-and-classics-zero-1028108` も記憶に基づく値なので、設定時に確認してください。ローカル jar（`tacz_local_name` / `tacz_local_version`）でも可。
 7. Forge は `47.3.0`（TaCZ 自身の開発版が `47.3.19` を使っているのに合わせた範囲。存在確認はできていない）。

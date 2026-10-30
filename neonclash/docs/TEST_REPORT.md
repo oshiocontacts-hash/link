@@ -4,13 +4,18 @@
 
 ## まとめ
 
+開発 VM からは Forge / Mojang / CurseForge に届かないため、実機の確認は **GitHub Actions**（`.github/workflows/neonclash-demo.yml`）で行った。
+TaCZ は Modrinth から **1.1.8-hotfix2**（Forge 1.20.1、2026-10-02 リリース）を取得。結果は `neonclash-demo-media` ブランチ（ソースのコミット `f72cbca`）。
+
 | 種類 | 結果 |
 |---|---|
-| ユニットテスト（JUnit 5、`core`） | **113 件すべて成功**（失敗 0・スキップ 0） |
-| GameTest（Forge、`runGameTestServer`） | **未実行**：7 件を実装済みだが、Forge / Minecraft を取得できずビルド不可 |
-| スモークテスト（`runServer`） | **未実行**：同上 |
-| スモークテスト（Xvfb + `runClient` で HUD スクショ） | **スキップ**：同上（Xvfb 自体は VM に入っている） |
-| ビルド済み jar | `core/build/libs/neonclash-core-0.1.0.jar` のみ。mod jar（`neonclash-0.1.0.jar`）は作れていない |
+| ユニットテスト（JUnit 5、`core`） | **113 件すべて成功**（VM と Actions の `./gradlew build` の両方） |
+| ビルド（Forge 1.20.1-47.3.0 + TaCZ） | **成功**（Actions。`neonclash-0.1.0.jar`） |
+| GameTest（`runGameTestServer`） | **7 件すべて成功**（`All 7 required tests passed`） |
+| 実機起動（Xvfb + Mesa で `runClient`） | **成功**：ワールド生成 → `/pvp practice 3` → 3 ラウンドの試合 → 終了まで自動で通った。mod 由来のエラー・警告なし |
+| HUD の録画 | `neonclash-demo.mp4`（42.7 秒、1280×720、ゲーム内の拍に合わせた BGM 付き）と 3 秒ごとのフレーム |
+| `runServer`（専用サーバー）単体のスモークテスト | 未実施。クライアント内蔵サーバーでのワールド生成と GameTest サーバーの起動は通っている |
+| ビルド済み jar | Actions の成果物 `neonclash-demo-media` ブランチの `neonclash-0.1.0.jar`、VM では `core/build/libs/neonclash-core-0.1.0.jar` |
 
 実行コマンド: `./gradlew -Pneonclash.coreOnly=true clean :core:build`（JUnit の XML/HTML は `core/build/test-results/test/`・`core/build/reports/tests/test/`）
 
@@ -43,19 +48,22 @@ OpenJDK 17（apt）、TaCZ のソース（GitHub、読み取りのみ。API 確�
 | `UpgradeDraftTest` | 30 | 3 択の重複なし・枠も別（×20 回）／**ランクが高いほど平均レア度が上がる**（4000 回×5 ランク、期待値 ±0.05）／重み 0 のレア度は出ない／所持済み非スタックは除外・スタック可は出る／候補不足／レア度のフォールバック／プール内の ID 重複／枠が少ない場合／シード固定で再現／config 文字列のパース／強化値の合算 |
 | `SkillsTest` | 5 | パリィの受付・クールダウン・成功時短縮／**ラストスタンドは 1 ライフ 1 回**／範囲スロー（内外・重なり・期限） |
 
-## GameTest（実装済み・未実行）
+## GameTest（GitHub Actions で 7/7 成功）
 
 `mod/src/main/java/com/neonclash/gametest/NCGameTests.java`、テンプレート `data/neonclash/structures/arena.nbt`（9×6×9、床のみ。生成スクリプトで書き出し、読み戻して構造を確認済み）。
 
 | テスト | 内容 | 状態 |
 |---|---|---|
-| `swordKillsInOneHit` | 体力 100 のアイアンゴーレムが剣 1 回で倒れる。溜め完了前は当たらない | 未実行 |
-| `swordOutOfRangeMisses` | 射程外の相手には当たらない | 未実行 |
-| `blinkDoesNotPassThroughWall` | 厚さ 1 の壁の手前で止まり、めり込まない。壁に密着した 2 回目は失敗しチャージを消費しない | 未実行 |
-| `slowZoneAffectsOnlyInside` | 範囲内のモブにだけスロー、範囲内の矢だけ減速 | 未実行 |
-| `lastStandTriggersOncePerLife` | 1 回目の致命傷は耐える・他者がスロー・2 回目は死ぬ・次のライフで再装填 | 未実行 |
-| `roundFlowKillEndUpgradeNext` | 開始 → キル（死亡キャンセル・脱落）→ ラウンド終了 → 強化選択（重複なし・1 回だけ）→ 未選択者にランダム付与 → ラウンド 2 開始 | 未実行 |
-| `taczGunHitGoesThroughModHandlers` | AI 停止モブに TaCZ のハンドガン（`IGunOperator`）で撃たせ、命中が `EntityHurtByGunEvent` 経由でこの mod の処理を通る | 未実行 |
+| `swordKillsInOneHit` | 体力 100 のアイアンゴーレムが剣 1 回で倒れる。溜め完了前は当たらない | 成功 |
+| `swordOutOfRangeMisses` | 射程外の相手には当たらない | 成功 |
+| `blinkDoesNotPassThroughWall` | 厚さ 1 の壁の手前で止まり、めり込まない。壁に密着した 2 回目は失敗しチャージを消費しない | 成功（※） |
+| `slowZoneAffectsOnlyInside` | 範囲内のモブにだけスロー、範囲内の矢だけ減速 | 成功 |
+| `lastStandTriggersOncePerLife` | 1 回目の致命傷は耐える・他者がスロー・2 回目は死ぬ・次のライフで再装填 | 成功 |
+| `roundFlowKillEndUpgradeNext` | 開始 → キル（死亡キャンセル・脱落）→ ラウンド終了 → 強化選択（重複なし・1 回だけ）→ 未選択者にランダム付与 → ラウンド 2 開始 | 成功 |
+| `taczGunHitGoesThroughModHandlers` | AI 停止モブに TaCZ のハンドガン（`IGunOperator`）で撃たせ、命中が `EntityHurtByGunEvent` 経由でこの mod の処理を通る | 成功 |
+
+※ 初回は失敗した。原因はテスト側で、GameTest の相対座標では床面が y=1 にあるのに y=1 にモブを出していた（床にめり込んでいた。
+診断値 `startFree=false` で確認）。全テストを y=2 に直して 7/7 成功。めり込んだ状態でも他の 6 件は通っていたので、座標を直した後の結果を正としている。
 
 ## 簡易プレイテスト（core ロジックのシミュレーション）
 
@@ -76,9 +84,8 @@ Minecraft を起動できないため、`tools/sim/PlaytestSim.java` で core �
 
 ## 既知の問題・リスク
 
-1. **Forge 層は一度もコンパイルされていない。** API の使い方は Forge 1.20.1 / 公式マッピングの知識と TaCZ のソースに基づくもので、
-   最初のビルドでコンパイルエラーが出る可能性は残る。別の目でのコードレビュー（全ファイル・TaCZ 呼び出しはソースと突き合わせ）では
-   コンパイルエラーは見つからず、以下を修正した：
+1. Forge 層は開発 VM ではコンパイルできず、GitHub Actions で初めてコンパイルした（一発で成功）。それより前に、別の目でのコードレビュー
+   （全ファイル・TaCZ 呼び出しはソースと突き合わせ）で以下を修正していた：
    - ローカル TaCZ jar の指定を ForgeGradle が再マップできる flatDir 記法に変更
    - 脱落して観戦中のプレイヤーが強化 3 択を選べなかった（パケットが弾かれていた）
    - 配布するハンドガンの発射モード・熱データを銃の定義から設定（TaCZ 自身のアイテム生成と同じ）
@@ -87,9 +94,8 @@ Minecraft を起動できないため、`tools/sim/PlaytestSim.java` で core �
    - クロスヘアの脈動が試合外・三人称・観戦中にも出る
    - パリィ・ラストスタンドが試合外のプレイヤーにも効き、`/kill` を一度耐えてしまう
    - スロー用シェーダーの後にブレンド関数を既定に戻していなかった
-2. TaCZ の CurseForge File ID が未設定（`gradle.properties`）。設定しないと mod のビルドは明示的に止まる。
-3. GameTest `taczGunHitGoesThroughModHandlers` は、TaCZ の既定の銃パックが GameTest サーバーで読み込まれること、モブの射撃に必要な初期化（`initialData` → `draw`）が
-   ソースから読み取った通りに動くことが前提。ブレがあると数発外れるので `succeedWhen` で命中するまで撃ち続ける作りにしている。
+2. TaCZ の CurseForge File ID は未設定のまま（`gradle.properties`）。Actions では Modrinth から取得した jar を `tacz_local_name/version` で渡している。
+3. GameTest `taczGunHitGoesThroughModHandlers` はブレで数発外れることがあるので、`succeedWhen` で命中するまで撃ち続ける作りにしている。
 4. TaCZ の弾は `setShouldReceiveVelocityUpdates(false)` なので、範囲スローで遅くした弾の見た目が遅れる可能性がある（`hurtMarked` で速度パケットを送っているが未確認）。当たり判定はサーバーなので影響はない。
 5. スロー中の彩度はシェーダー JSON の固定値（実行時に強さを変える API が無い）。フェードは FOV・音程・レターボックスで表現。
 6. プレイヤーのヒットストップはクライアント側で止めている（サーバー権威ではない）。改造クライアントは無視できる。
