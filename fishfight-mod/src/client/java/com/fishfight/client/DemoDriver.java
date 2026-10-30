@@ -35,12 +35,13 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
  */
 final class DemoDriver {
 	private static final String WORLD = "fishfight-demo";
-	private static final int MAX_TICKS = 20 * 60 * 8;
+	private static final int MAX_TICKS = 20 * 60 * 5;
 	/** 2tickごと＝10fpsで画面を保存する */
 	private static final int FRAME_INTERVAL = 2;
 
 	private static final ExecutorService FRAME_WRITER = Executors.newSingleThreadExecutor();
 	private static int frameNumber;
+	private static boolean capturing;
 
 	private record Step(String name, int delay, Predicate<Minecraft> ready, Consumer<Minecraft> action) {
 	}
@@ -75,6 +76,7 @@ final class DemoDriver {
 			command(mc, "tp @s ~ 120 ~-7 0 12");
 		});
 		step("title", 40, mc -> true, mc -> {
+			capturing = true;
 			mc.gui.getChat().clearMessages(false);
 			command(mc, "title @s times 10 60 10");
 			command(mc, "title @s subtitle \"釣りバトルMod テスト\"");
@@ -98,10 +100,11 @@ final class DemoDriver {
 		});
 		step("battle 1", 120, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
-			command(mc, "tp @s ~ ~ ~ 0 8");
+			command(mc, "tp @s ~ ~ ~ 0 0");
 			command(mc, "fishfight practice");
 			battleTicks = 0;
 		});
+		step("empty hand 1", 10, mc -> true, mc -> mc.player.getInventory().selected = 8);
 		step("wait battle 1", 100, DemoDriver::battleOver, mc -> { });
 		step("select shark", 40, mc -> true, mc -> select(mc, FishSpecies.SHARK));
 		step("battle 2", 10, mc -> true, mc -> {
@@ -109,6 +112,7 @@ final class DemoDriver {
 			command(mc, "fishfight practice");
 			battleTicks = 0;
 		});
+		step("empty hand 2", 10, mc -> true, mc -> mc.player.getInventory().selected = 8);
 		step("wait battle 2", 100, DemoDriver::battleOver, mc -> { });
 		step("finish", 40, mc -> true, DemoDriver::finish);
 	}
@@ -142,7 +146,7 @@ final class DemoDriver {
 			}
 			case 2 -> {
 				runScript(mc);
-				if (totalTicks % FRAME_INTERVAL == 0) {
+				if (capturing && totalTicks % FRAME_INTERVAL == 0) {
 					captureFrame(mc);
 				}
 			}

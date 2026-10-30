@@ -21,10 +21,10 @@ import net.minecraft.world.level.Level;
  * バトル中だけ出現する魚。動きは {@link com.fishfight.battle.FishBattle} が全部決める。
  */
 public class BattleFishEntity extends Entity {
-	public static final byte EVENT_ATTACK = 60;
-	public static final byte EVENT_HURT = 61;
-	public static final byte EVENT_SPROUT_ARMS = 62;
-	public static final byte EVENT_SPROUT_LEGS = 63;
+	public static final byte EVENT_ATTACK = 100;
+	public static final byte EVENT_HURT = 101;
+	public static final byte EVENT_SPROUT_ARMS = 102;
+	public static final byte EVENT_SPROUT_LEGS = 103;
 
 	private static final EntityDataAccessor<String> SPECIES = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.STRING);
 	private static final EntityDataAccessor<Integer> RARITY = SynchedEntityData.defineId(BattleFishEntity.class, EntityDataSerializers.INT);
