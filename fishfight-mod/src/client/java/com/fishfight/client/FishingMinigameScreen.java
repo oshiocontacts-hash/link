@@ -88,6 +88,11 @@ public class FishingMinigameScreen extends Screen {
 		}
 		ticks++;
 
+		if (FishFight.DEMO) {
+			// 録画用の自動操作：魚の少し先を狙ってゾーンを動かす
+			keyHeld = fishPos + fishVel * 4f > zonePos + zoneSize / 2f + zoneVel * 6f;
+		}
+
 		// キャッチゾーン：押すと上昇、離すと落下。底では少し跳ねる
 		boolean holding = keyHeld || mouseHeld;
 		zoneVel = Mth.clamp(zoneVel + (holding ? 0.011f : -0.009f), -0.045f, 0.045f);

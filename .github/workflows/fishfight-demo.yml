@@ -1,0 +1,109 @@
+name: Record Fish Fight demo
+
+# Minecraft を仮想ディスプレイで起動し、自動デモ（釣り→バトル）を録画する。
+# 動画・スクリーンショット・ログは Artifacts と fishfight-demo-media ブランチに置く。
+on:
+  push:
+    branches:
+      - claude/fishfight-mod
+    paths:
+      - 'fishfight-mod/**'
+      - '.github/workflows/fishfight-demo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: fishfight-mod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Xvfb, Mesa and ffmpeg
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb ffmpeg mesa-utils libgl1-mesa-dri libglx-mesa0
+
+      - name: Prepare game options
+        run: |
+          mkdir -p run-demo
+          cat > run-demo/options.txt <<'EOF'
+          onboardAccessibility:false
+          pauseOnLostFocus:false
+          renderDistance:5
+          simulationDistance:5
+          graphicsMode:0
+          maxFps:30
+          enableVsync:false
+          guiScale:2
+          lang:ja_jp
+          tutorialStep:none
+          joinedFirstServer:true
+          narrator:0
+          fullscreen:false
+          soundCategory_master:0.0
+          EOF
+
+      - name: Run demo and record
+        env:
+          DISPLAY: ':99'
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          Xvfb :99 -screen 0 1280x720x24 &
+          sleep 3
+          glxinfo -B | grep -E 'OpenGL (renderer|core profile version)' || true
+          (
+            while [ ! -f run-demo/demo_recording ]; do sleep 1; done
+            ffmpeg -y -loglevel error -f x11grab -video_size 1280x720 -framerate 20 -i :99 \
+              -c:v libx264 -preset ultrafast -crf 24 -pix_fmt yuv420p raw.mp4 &
+            echo $! > ffmpeg.pid
+            wait
+          ) &
+          status=0
+          timeout 1800 ./gradlew runDemo --stacktrace || status=$?
+          echo "runDemo exit status: $status"
+          if [ -f ffmpeg.pid ]; then
+            kill -INT "$(cat ffmpeg.pid)" || true
+            while kill -0 "$(cat ffmpeg.pid)" 2>/dev/null; do sleep 1; done
+          fi
+          ls -la run-demo
+
+      - name: Encode video and frames
+        if: always()
+        run: |
+          mkdir -p media/frames
+          cp run-demo/logs/latest.log media/latest.log || true
+          if [ -f raw.mp4 ]; then
+            ffmpeg -y -loglevel error -i raw.mp4 -vf scale=960:-2 -c:v libx264 -preset veryfast -crf 28 -pix_fmt yuv420p media/fishfight-demo.mp4
+            ffmpeg -y -loglevel error -i raw.mp4 -vf "fps=1/2,scale=640:-1" media/frames/f%03d.jpg
+          fi
+          ls -la media media/frames | head -100
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fishfight-demo
+          path: fishfight-mod/media
+
+      - name: Publish to fishfight-demo-media branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd media
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Fish Fight demo recording for ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:fishfight-demo-media

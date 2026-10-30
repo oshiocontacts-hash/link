@@ -7,6 +7,7 @@ import com.fishfight.fish.FishRarity;
 import com.fishfight.fish.FishSpecies;
 import com.fishfight.fish.FishStats;
 import com.fishfight.fish.Mutation;
+import com.fishfight.fishing.FishingMinigameManager;
 import com.fishfight.item.FishItem;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -73,6 +74,19 @@ public final class FishFightCommand {
 														StringArgumentType.getString(ctx, "rarity"),
 														StringArgumentType.getString(ctx, "mutation"))))))));
 
+		// テスト用：魚がかかった状態からミニゲームを始める
+		dispatcher.register(Commands.literal("fishfight")
+				.then(Commands.literal("testcatch")
+						.requires(source -> source.hasPermission(2))
+						.then(Commands.argument("species", StringArgumentType.word()).suggests(SPECIES)
+								.then(Commands.argument("rarity", StringArgumentType.word()).suggests(RARITIES)
+										.executes(ctx -> testCatch(ctx, StringArgumentType.getString(ctx, "species"),
+												StringArgumentType.getString(ctx, "rarity"), null))
+										.then(Commands.argument("mutation", StringArgumentType.word()).suggests(MUTATIONS)
+												.executes(ctx -> testCatch(ctx, StringArgumentType.getString(ctx, "species"),
+														StringArgumentType.getString(ctx, "rarity"),
+														StringArgumentType.getString(ctx, "mutation"))))))));
+
 		dispatcher.register(Commands.literal("ff").executes(ctx -> help(ctx.getSource())).redirect(root));
 	}
 
@@ -103,6 +117,24 @@ public final class FishFightCommand {
 	private static int give(CommandContext<CommandSourceStack> ctx, @Nullable String speciesId, @Nullable String rarityId,
 			@Nullable String mutationId) throws CommandSyntaxException {
 		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		FishStats stats = rollFish(player, speciesId, rarityId, mutationId);
+		player.getInventory().placeItemBackInInventory(FishItem.create(stats));
+		ctx.getSource().sendSuccess(() -> FishFight.tr("command.given", stats.displayName()), false);
+		return 1;
+	}
+
+	private static int testCatch(CommandContext<CommandSourceStack> ctx, String speciesId, String rarityId,
+			@Nullable String mutationId) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		if (player.fishing != null) {
+			player.fishing.discard();
+		}
+		FishingMinigameManager.start(player, rollFish(player, speciesId, rarityId, mutationId));
+		return 1;
+	}
+
+	private static FishStats rollFish(ServerPlayer player, @Nullable String speciesId, @Nullable String rarityId,
+			@Nullable String mutationId) {
 		FishSpecies species = speciesId == null
 				? FishSpecies.values()[player.getRandom().nextInt(FishSpecies.values().length)]
 				: FishSpecies.byId(speciesId);
@@ -122,9 +154,6 @@ public final class FishFightCommand {
 				}
 			}
 		}
-		FishStats stats = FishGenerator.generate(player.getRandom(), species, rarity, player.getGameProfile().getName(), mutation);
-		player.getInventory().placeItemBackInInventory(FishItem.create(stats));
-		ctx.getSource().sendSuccess(() -> FishFight.tr("command.given", stats.displayName()), false);
-		return 1;
+		return FishGenerator.generate(player.getRandom(), species, rarity, player.getGameProfile().getName(), mutation);
 	}
 }

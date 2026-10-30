@@ -1,5 +1,6 @@
 package com.fishfight.client;
 
+import com.fishfight.FishFight;
 import com.fishfight.network.StartMinigamePayload;
 import com.fishfight.registry.ModEntities;
 import net.fabricmc.api.ClientModInitializer;
@@ -15,5 +16,9 @@ public class FishFightClient implements ClientModInitializer {
 
 		ClientPlayNetworking.registerGlobalReceiver(StartMinigamePayload.TYPE, (payload, context) ->
 				context.client().setScreen(new FishingMinigameScreen(payload)));
+
+		if (FishFight.DEMO) {
+			DemoDriver.init();
+		}
 	}
 }

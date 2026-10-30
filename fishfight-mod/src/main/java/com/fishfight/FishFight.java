@@ -30,6 +30,9 @@ public class FishFight implements ModInitializer {
 	/** バニラの釣り竿で魚がかかった時、ミニゲームになる確率（残りはバニラの釣果） */
 	public static final float MINIGAME_CHANCE = 0.85f;
 
+	/** 録画用デモモード（-Dfishfight.demo=true）。通常プレイでは常に false */
+	public static final boolean DEMO = Boolean.getBoolean("fishfight.demo");
+
 	public static ResourceLocation id(String path) {
 		return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
 	}

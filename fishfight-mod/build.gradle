@@ -15,6 +15,18 @@ loom {
 			sourceSet sourceSets.client
 		}
 	}
+
+	runs {
+		// 録画用：./gradlew runDemo で自動デモを実行する
+		demo {
+			client()
+			configName = "Demo Client"
+			source sourceSets.client
+			runDir "run-demo"
+			vmArg "-Dfishfight.demo=true"
+			programArgs "--width", "1280", "--height", "720"
+		}
+	}
 }
 
 dependencies {

@@ -226,7 +226,11 @@ public class FishBattle {
 		}
 
 		// いきなり腕が生える。追い詰められるほど生えやすい
-		if (!actor.arms && !actor.sproutedArms && random.nextFloat() < 0.05f + 0.15f * (1f - actor.hpRatio())) {
+		float sproutChance = 0.05f + 0.15f * (1f - actor.hpRatio());
+		if (FishFight.DEMO) {
+			sproutChance *= 3f;
+		}
+		if (!actor.arms && !actor.sproutedArms && random.nextFloat() < sproutChance) {
 			sproutArms(actor);
 		}
 		if (!actor.legs && !actor.sproutedLegs && random.nextFloat() < 0.025f) {
