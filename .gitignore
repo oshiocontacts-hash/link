@@ -5,3 +5,5 @@ neonclash/mod/run/
 neonclash/mod/libs/*.jar
 *.iml
 .idea/
+neonclash/media/
+__pycache__/

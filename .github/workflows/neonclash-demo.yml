@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: neonclash-demo
+  cancel-in-progress: true
+
 jobs:
   record:
     runs-on: ubuntu-latest
