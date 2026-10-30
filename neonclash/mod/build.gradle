@@ -66,12 +66,13 @@ dependencies {
 
     implementation coreProject
 
-    if (!tacz_local_jar.isEmpty()) {
-        implementation fg.deobf(files("libs/${tacz_local_jar}"))
+    if (!tacz_local_name.isEmpty()) {
+        // mod/libs/<name>-<version>.jar（TaCZ 自身の build.gradle と同じ flatDir の書き方）
+        implementation fg.deobf("libs:${tacz_local_name}:${tacz_local_version}")
     } else if (!tacz_curse_file_id.isEmpty()) {
         implementation fg.deobf("curse.maven:${tacz_curse_project}:${tacz_curse_file_id}")
     } else {
-        throw new GradleException("TaCZ の取得元が未設定です。gradle.properties の tacz_curse_file_id か tacz_local_jar を設定してください（README 参照）。")
+        throw new GradleException("TaCZ の取得元が未設定です。gradle.properties の tacz_curse_file_id か tacz_local_name/tacz_local_version を設定してください（README 参照）。")
     }
 
     testImplementation platform('org.junit:junit-bom:5.10.2')

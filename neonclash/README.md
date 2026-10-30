@@ -83,7 +83,7 @@ neonclash/
 ./gradlew -Pneonclash.coreOnly=true :core:build
 
 # Forge Maven / Mojang / CurseMaven に届く環境で
-#   gradle.properties の tacz_curse_file_id（または mod/libs に置いた jar の tacz_local_jar）を設定してから
+#   gradle.properties の tacz_curse_file_id（または mod/libs に置いた jar の tacz_local_name / tacz_local_version）を設定してから
 ./gradlew build                # mod/build/libs/neonclash-0.1.0.jar
 ./gradlew :mod:runGameTestServer
 ./gradlew :mod:runServer       # スモークテスト
@@ -106,7 +106,7 @@ neonclash/
    2026-10-18 に追加された `GunFirePostEvent` は配布版に入っていない可能性があるため使わず、2024 年から存在する API だけに限定しました。
 6. **TaCZ の CurseForge File ID は未確定。** CurseForge に到達できず「最新の 1.20.1 版」を特定できないため、推測で ID を書かず
    `gradle.properties` の `tacz_curse_file_id` を空にして、未設定ならビルドが分かりやすいメッセージで止まるようにしました。
-   プロジェクトのスラッグ `timeless-and-classics-zero-1028108` も記憶に基づく値なので、設定時に確認してください。ローカル jar（`tacz_local_jar`）でも可。
+   プロジェクトのスラッグ `timeless-and-classics-zero-1028108` も記憶に基づく値なので、設定時に確認してください。ローカル jar（`tacz_local_name` / `tacz_local_version`）でも可。
 7. Forge は `47.3.0`（TaCZ 自身の開発版が `47.3.19` を使っているのに合わせた範囲。存在確認はできていない）。
 
 **ゲーム仕様**
