@@ -54,6 +54,8 @@ public class BattleFishEntity extends PathfinderMob {
 
 	/** 脚生えが発動するまでに跳ねる時間 */
 	private static final int FLOP_TICKS_FOR_LEGS = 60;
+	/** 闘技場の半径。これより外に出たら中心へ戻ろうとする */
+	private static final double ARENA_RADIUS = 6.0;
 	/** バトルの中心からこれ以上離れたら引き戻す */
 	private static final double LEASH = 14.0;
 
@@ -218,7 +220,10 @@ public class BattleFishEntity extends PathfinderMob {
 	}
 
 	private void move(double dist) {
-		Vec3 toTarget = opponent.position().subtract(position());
+		// 闘技場から出そうなら、相手ではなく中心へ向かう
+		boolean outside = battle != null && position().distanceTo(battle.center()) > ARENA_RADIUS;
+		Vec3 goal = outside ? battle.center() : opponent.position();
+		Vec3 toTarget = goal.subtract(position());
 		Vec3 flat = new Vec3(toTarget.x, 0, toTarget.z);
 		Vec3 dir = flat.lengthSqr() < 1.0E-4 ? new Vec3(1, 0, 0) : flat.normalize();
 		float speedFactor = 1f + spd() / 40f;
@@ -239,7 +244,7 @@ public class BattleFishEntity extends PathfinderMob {
 			// 水中：まっすぐ泳いで近づく
 			getNavigation().stop();
 			face(dir);
-			if (dist > reach() * 0.8) {
+			if (outside || dist > reach() * 0.8) {
 				Vec3 swim = toTarget.normalize().scale(0.045 * speedFactor);
 				setDeltaMovement(getDeltaMovement().scale(0.85).add(swim).add(0, 0.005, 0));
 			}
@@ -248,7 +253,9 @@ public class BattleFishEntity extends PathfinderMob {
 
 		if (hasLegs()) {
 			// 脚がある：歩いて近づく
-			if (dist > reach() * 0.8) {
+			if (outside) {
+				getNavigation().moveTo(goal.x, goal.y, goal.z, 1.0);
+			} else if (dist > reach() * 0.8) {
 				getNavigation().moveTo(opponent, 1.0);
 			} else {
 				getNavigation().stop();
@@ -261,7 +268,7 @@ public class BattleFishEntity extends PathfinderMob {
 		getNavigation().stop();
 		flopTicks++;
 		if (onGround() && --hopCooldown <= 0) {
-			double angle = (random.nextDouble() - 0.5) * (dist < reach() ? 3.0 : 1.6);
+			double angle = (random.nextDouble() - 0.5) * (dist < reach() && !outside ? 3.0 : 1.6);
 			Vec3 hop = dir.yRot((float) angle);
 			double h = 0.16 + random.nextDouble() * 0.14;
 			setDeltaMovement(hop.x * h * speedFactor, 0.3 + random.nextDouble() * 0.15, hop.z * h * speedFactor);

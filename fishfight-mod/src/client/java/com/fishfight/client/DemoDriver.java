@@ -18,6 +18,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -149,7 +150,8 @@ final class DemoDriver {
 			}
 			case 2 -> {
 				runScript(mc);
-				if (capturing && totalTicks % FRAME_INTERVAL == 0) {
+				followBattle(mc);
+				if (capturing && stage == 2 && totalTicks % FRAME_INTERVAL == 0) {
 					captureFrame(mc);
 				}
 			}
@@ -171,6 +173,35 @@ final class DemoDriver {
 		step.action().accept(mc);
 		stepIndex++;
 		stepTicks = 0;
+	}
+
+	/** バトル中はカメラで2匹の真ん中を追いかける */
+	private static void followBattle(Minecraft mc) {
+		if (mc.player == null || mc.level == null) {
+			return;
+		}
+		double x = 0;
+		double y = 0;
+		double z = 0;
+		int count = 0;
+		for (Entity entity : mc.level.entitiesForRendering()) {
+			if (entity instanceof BattleFishEntity fish && fish.isAlive()) {
+				x += fish.getX();
+				y += fish.getY() + fish.getBbHeight() * 0.5;
+				z += fish.getZ();
+				count++;
+			}
+		}
+		if (count == 0) {
+			return;
+		}
+		double dx = x / count - mc.player.getX();
+		double dy = y / count - mc.player.getEyeY();
+		double dz = z / count - mc.player.getZ();
+		float yaw = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90f;
+		float pitch = (float) -(Mth.atan2(dy, Math.sqrt(dx * dx + dz * dz)) * Mth.RAD_TO_DEG);
+		mc.player.setYRot(Mth.rotLerp(0.15f, mc.player.getYRot(), yaw));
+		mc.player.setXRot(Mth.lerp(0.15f, mc.player.getXRot(), pitch));
 	}
 
 	private static void createWorld(Minecraft mc) {
@@ -228,6 +259,7 @@ final class DemoDriver {
 
 	private static void finish(Minecraft mc) {
 		FishFight.LOGGER.info("[demo] finished, {} frames", frameNumber);
+		capturing = false;
 		FRAME_WRITER.shutdown();
 		try {
 			FRAME_WRITER.awaitTermination(2, TimeUnit.MINUTES);
