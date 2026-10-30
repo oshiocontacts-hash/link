@@ -22,6 +22,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
@@ -113,12 +114,22 @@ final class DemoDriver {
 		step("empty hand 1", 10, mc -> true, DemoDriver::stepBack);
 		step("wait battle 1", 100, DemoDriver::battleOver, mc -> { });
 		step("select shark", 40, mc -> true, mc -> select(mc, FishSpecies.SHARK));
-		step("battle 2", 10, mc -> true, mc -> {
+		step("zombie", 10, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
-			// バトル1で下がった分を戻してから始める
-			command(mc, "tp @s ~ ~ ~2 0 18");
-			// 強い相手と戦わせて、サメを追い詰めて覚醒させる
-			command(mc, "fishfight practice coelacanth legendary arm_sprout regenerate");
+			// バトル1で下がった分を戻し、目の前にゾンビを出す（ヘルメットで日光に燃えないように）
+			command(mc, "tp @s ~ ~ ~2 0 10");
+			command(mc, "difficulty easy");
+			command(mc, "summon minecraft:zombie ~ ~ ~2.5 {PersistenceRequired:1b,Rotation:[180f,0f],"
+					+ "ArmorItems:[{},{},{},{id:\"minecraft:leather_helmet\",count:1}]}");
+		});
+		step("battle 2", 30, mc -> true, mc -> {
+			// サメを持ってゾンビを右クリック → 負けた方が死ぬ魚バトル
+			for (Entity entity : mc.level.entitiesForRendering()) {
+				if (entity instanceof Zombie zombie) {
+					mc.gameMode.interact(mc.player, zombie, InteractionHand.MAIN_HAND);
+					break;
+				}
+			}
 			battleTicks = 0;
 		});
 		step("empty hand 2", 10, mc -> true, DemoDriver::stepBack);

@@ -24,6 +24,19 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.monster.AbstractSkeleton;
+import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.monster.Drowned;
+import net.minecraft.world.entity.monster.ElderGuardian;
+import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.monster.Guardian;
+import net.minecraft.world.entity.monster.Spider;
+import net.minecraft.world.entity.monster.Witch;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -35,7 +48,7 @@ public final class FishBattleManager {
 	private static final int CHALLENGE_TIMEOUT = 20 * 60;
 	private static final double MAX_DISTANCE = 24.0;
 
-	private record Challenge(UUID challenger, int tick) {
+	private record Challenge(UUID challenger, int tick, boolean bet) {
 	}
 
 	/** 申し込まれた側のUUID → 申し込み */
@@ -93,6 +106,10 @@ public final class FishBattleManager {
 	}
 
 	public static void challenge(ServerPlayer challenger, ServerPlayer target) {
+		challenge(challenger, target, false);
+	}
+
+	public static void challenge(ServerPlayer challenger, ServerPlayer target, boolean bet) {
 		if (challenger == target) {
 			fail(challenger, "battle.err.self");
 			return;
@@ -111,15 +128,25 @@ public final class FishBattleManager {
 			return;
 		}
 		int now = challenger.server.getTickCount();
+		// 相手からもう申し込まれていたら、右クリックし返しただけで即開始
+		Challenge incoming = CHALLENGES.get(challenger.getUUID());
+		if (incoming != null && incoming.challenger().equals(target.getUUID())) {
+			accept(challenger);
+			return;
+		}
 		Challenge existing = CHALLENGES.get(target.getUUID());
 		if (existing != null && existing.challenger().equals(challenger.getUUID()) && now - existing.tick() < 60) {
 			return; // 右クリック連打対策
 		}
-		CHALLENGES.put(target.getUUID(), new Challenge(challenger.getUUID(), now));
+		CHALLENGES.put(target.getUUID(), new Challenge(challenger.getUUID(), now, bet));
 
 		challenger.sendSystemMessage(FishFight.tr("battle.challenge_sent", target.getDisplayName()).withStyle(ChatFormatting.AQUA));
 		target.sendSystemMessage(FishFight.tr("battle.challenge_received", challenger.getDisplayName(), fish.displayName(), fish.power())
 				.withStyle(ChatFormatting.AQUA));
+		if (bet) {
+			target.sendSystemMessage(FishFight.tr("battle.bet_notice").withStyle(ChatFormatting.GOLD));
+		}
+		target.sendSystemMessage(FishFight.tr("battle.quick_accept_hint").withStyle(ChatFormatting.GRAY));
 		MutableComponent accept = FishFight.tr("battle.button.accept").withStyle(style -> style
 				.withColor(ChatFormatting.GREEN)
 				.withBold(true)
@@ -175,7 +202,9 @@ public final class FishBattleManager {
 		Vec3 center = new Vec3((pa.x + pb.x) / 2, Math.max(pa.y, pb.y), (pa.z + pb.z) / 2);
 		Fighter fa = new Fighter(a, challenger.getUUID(), FishFight.tr("battle.owned", challenger.getDisplayName(), fishLabel(challenger, a)));
 		Fighter fb = new Fighter(b, target.getUUID(), FishFight.tr("battle.owned", target.getDisplayName(), fishLabel(target, b)));
-		BATTLES.add(new FishBattle(challenger.serverLevel(), center, axis, fa, fb, false));
+		FishBattle battle = new FishBattle(challenger.serverLevel(), center, axis, fa, fb, false);
+		battle.setBet(challenge.bet());
+		BATTLES.add(battle);
 	}
 
 	public static void deny(ServerPlayer target) {
@@ -189,6 +218,79 @@ public final class FishBattleManager {
 		if (challenger != null) {
 			challenger.sendSystemMessage(FishFight.tr("battle.denied", target.getDisplayName()).withStyle(ChatFormatting.GRAY));
 		}
+	}
+
+	/** 敵モブに魚バトルを挑む。負けた方が死ぬ */
+	public static void fightMob(ServerPlayer player, Mob mob) {
+		FishStats mine = heldFish(player);
+		if (mine == null) {
+			fail(player, "battle.err.no_fish");
+			return;
+		}
+		if (inBattle(player.getUUID()) || inBattle(mob.getUUID())) {
+			fail(player, "battle.err.busy");
+			return;
+		}
+		if (mob instanceof WitherBoss || mob instanceof EnderDragon || mob instanceof Warden || mob instanceof ElderGuardian) {
+			fail(player, "battle.err.boss");
+			return;
+		}
+		RandomSource random = player.getRandom();
+		FishRarity rarity = FishRarity.byOrdinal(mine.rarity().ordinal() + random.nextInt(3) - 1);
+		FishStats wild = FishGenerator.generate(random, mobFish(mob, random), rarity, "");
+
+		Vec3 pp = player.position();
+		Vec3 mp = mob.position();
+		Vec3 axis = new Vec3(mp.x - pp.x, 0, mp.z - pp.z);
+		if (axis.lengthSqr() < 0.25) {
+			Vec3 look = player.getLookAngle();
+			axis = new Vec3(look.x, 0, look.z);
+		}
+		Vec3 center = new Vec3((pp.x + mp.x) / 2, pp.y, (pp.z + mp.z) / 2);
+		Fighter fa = new Fighter(mine, player.getUUID(), FishFight.tr("battle.owned", player.getDisplayName(), fishLabel(player, mine)));
+		Fighter fb = new Fighter(wild, null, FishFight.tr("battle.owned", mob.getDisplayName(), wild.displayName()));
+		FishBattle battle = new FishBattle(player.serverLevel(), center, axis, fa, fb, false);
+		battle.setStakeMob(mob);
+		BATTLES.add(battle);
+	}
+
+	/** モブごとにそれっぽい魚を出す */
+	private static FishSpecies mobFish(Mob mob, RandomSource random) {
+		if (mob instanceof Creeper) {
+			return FishSpecies.PUFFERFISH;
+		}
+		if (mob instanceof Drowned || mob instanceof Guardian) {
+			return FishSpecies.SHARK;
+		}
+		if (mob instanceof AbstractSkeleton) {
+			return FishSpecies.PIRANHA;
+		}
+		if (mob instanceof Zombie) {
+			return FishSpecies.CARP;
+		}
+		if (mob instanceof EnderMan) {
+			return FishSpecies.OARFISH;
+		}
+		if (mob instanceof Witch) {
+			return FishSpecies.SUNFISH;
+		}
+		if (mob instanceof Spider) {
+			return FishSpecies.CATFISH;
+		}
+		return FishSpecies.values()[random.nextInt(FishSpecies.values().length)];
+	}
+
+	/** 手に持っている魚をみんなに自慢する（チャットでカーソルを合わせるとステータスが見える） */
+	public static void show(ServerPlayer player) {
+		ItemStack stack = player.getMainHandItem();
+		if (heldFish(player) == null) {
+			fail(player, "battle.err.no_fish");
+			return;
+		}
+		Component item = Component.empty().append(stack.getHoverName()).withStyle(style -> style
+				.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_ITEM, new HoverEvent.ItemStackInfo(stack))));
+		player.server.getPlayerList().broadcastSystemMessage(
+				FishFight.tr("show.message", player.getDisplayName(), Component.literal("[").append(item).append("]")), false);
 	}
 
 	/** 野生の魚と練習試合。相手を指定しなければランダム */
@@ -250,6 +352,7 @@ public final class FishBattleManager {
 
 	public static void clear(MinecraftServer server) {
 		endSlowMotion(server);
+		FishFightRanking.unload();
 		for (FishBattle battle : BATTLES) {
 			battle.cancel();
 		}

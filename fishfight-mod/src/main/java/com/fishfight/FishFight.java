@@ -2,6 +2,7 @@ package com.fishfight;
 
 import com.fishfight.battle.FishBattleManager;
 import com.fishfight.command.FishFightCommand;
+import com.fishfight.entity.BattleFishEntity;
 import com.fishfight.fishing.FishingMinigameManager;
 import com.fishfight.item.FishItem;
 import com.fishfight.network.ModNetworking;
@@ -20,6 +21,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.Enemy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,16 +63,22 @@ public class FishFight implements ModInitializer {
 			FishBattleManager.clear(server);
 		});
 
-		// 魚を持って他のプレイヤーを右クリック → 勝負を挑む
+		// 魚を持って右クリック：プレイヤーなら勝負を挑む、敵モブなら負けた方が死ぬ魚バトル
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
-			if (hand != InteractionHand.MAIN_HAND || !(entity instanceof net.minecraft.world.entity.player.Player)) {
+			if (hand != InteractionHand.MAIN_HAND || !(player.getMainHandItem().getItem() instanceof FishItem)) {
 				return InteractionResult.PASS;
 			}
-			if (!(player.getMainHandItem().getItem() instanceof FishItem)) {
+			boolean isPlayer = entity instanceof net.minecraft.world.entity.player.Player;
+			boolean isEnemy = entity instanceof Mob && entity instanceof Enemy && !(entity instanceof BattleFishEntity);
+			if (!isPlayer && !isEnemy) {
 				return InteractionResult.PASS;
 			}
-			if (!level.isClientSide && player instanceof ServerPlayer challenger && entity instanceof ServerPlayer target) {
-				FishBattleManager.challenge(challenger, target);
+			if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
+				if (entity instanceof ServerPlayer target) {
+					FishBattleManager.challenge(serverPlayer, target);
+				} else if (entity instanceof Mob mob) {
+					FishBattleManager.fightMob(serverPlayer, mob);
+				}
 			}
 			return InteractionResult.SUCCESS;
 		});

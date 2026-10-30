@@ -29,6 +29,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
@@ -61,6 +62,11 @@ public class FishBattle {
 	private final boolean practice;
 
 	private final Vec3[] startPositions = new Vec3[2];
+	/** 敵モブとの命がけバトルの相手（fighters[1] の持ち主）。負けた方が死ぬ */
+	@Nullable
+	private Mob stakeMob;
+	/** 賭けバトル：負けた方の魚は勝った方のものになる */
+	private boolean bet;
 	private State state = State.INTRO;
 	private int timer;
 	private float lastHpSum = -1f;
@@ -144,7 +150,24 @@ public class FishBattle {
 				return true;
 			}
 		}
-		return false;
+		return stakeMob != null && player.equals(stakeMob.getUUID());
+	}
+
+	/** 敵モブとの、負けた方が死ぬバトルにする。モブはバトル中その場で固まる */
+	public void setStakeMob(Mob mob) {
+		this.stakeMob = mob;
+		mob.setTarget(null);
+		mob.getNavigation().stop();
+		mob.setNoAi(true);
+		mob.setInvulnerable(true);
+		announce(FishFight.tr("battle.mob.start", mob.getDisplayName()).withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD));
+	}
+
+	public void setBet(boolean bet) {
+		this.bet = bet;
+		if (bet) {
+			announce(FishFight.tr("battle.bet_notice").withStyle(ChatFormatting.GOLD));
+		}
 	}
 
 	/** @return 試合が終わって片付けが済んだら true */
@@ -265,6 +288,10 @@ public class FishBattle {
 
 	/** 持ち主がいなくなったら不戦敗 */
 	private boolean checkParticipants() {
+		if (stakeMob != null && (stakeMob.isRemoved() || !stakeMob.isAlive())) {
+			cancel();
+			return false;
+		}
 		for (Fighter f : fighters) {
 			if (f.owner == null) {
 				continue;
@@ -323,6 +350,15 @@ public class FishBattle {
 				addWin(winnerPlayer, winner.stats);
 			}
 		}
+		if (!practice && stakeMob == null && winnerPlayer != null && loserPlayer != null) {
+			FishFightRanking.recordPvp(winnerPlayer, loserPlayer);
+		}
+		if (bet && winnerPlayer != null && loserPlayer != null) {
+			takeFish(winnerPlayer, loserPlayer, loser);
+		}
+		if (stakeMob != null) {
+			resolveMobStakes(winner == fighters[0]);
+		}
 		if (loserPlayer != null && !knockout) {
 			title(loserPlayer, FishFight.tr("battle.defeat").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.BOLD), loser.name, 50);
 		}
@@ -346,8 +382,51 @@ public class FishBattle {
 		cleanup();
 	}
 
+	/** 命がけバトルの決着：負けた方が死ぬ */
+	private void resolveMobStakes(boolean playerWon) {
+		Mob mob = stakeMob;
+		stakeMob = null;
+		mob.setNoAi(false);
+		mob.setInvulnerable(false);
+		ServerPlayer player = fighters[0].owner == null ? null : server.getPlayerList().getPlayer(fighters[0].owner);
+		if (playerWon) {
+			announce(FishFight.tr("battle.mob.win", mob.getDisplayName()).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
+			if (player != null) {
+				// プレイヤーが倒したことにする（ドロップと経験値が出る）
+				mob.hurt(mob.damageSources().playerAttack(player), Float.MAX_VALUE);
+				FishFightRanking.recordMob(player, true);
+			} else {
+				mob.kill();
+			}
+		} else if (player != null) {
+			announce(FishFight.tr("battle.mob.lose", player.getDisplayName()).withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD));
+			FishFightRanking.recordMob(player, false);
+			player.hurt(player.damageSources().mobAttack(mob), Float.MAX_VALUE);
+		}
+	}
+
+	/** 賭けバトル：負けた方の魚を勝った方に渡す */
+	private void takeFish(ServerPlayer winnerPlayer, ServerPlayer loserPlayer, Fighter loser) {
+		for (int i = 0; i < loserPlayer.getInventory().getContainerSize(); i++) {
+			ItemStack stack = loserPlayer.getInventory().getItem(i);
+			if (loser.stats.equals(stack.get(ModComponents.FISH_STATS))) {
+				ItemStack taken = stack.split(1);
+				winnerPlayer.getInventory().placeItemBackInInventory(taken);
+				announce(FishFight.tr("battle.bet.taken", winnerPlayer.getDisplayName(), loserPlayer.getDisplayName(), taken.getHoverName())
+						.withStyle(ChatFormatting.GOLD));
+				return;
+			}
+		}
+	}
+
 	private void cleanup() {
 		state = State.DONE;
+		if (stakeMob != null && stakeMob.isAlive()) {
+			// 中止になったらモブを元に戻す
+			stakeMob.setNoAi(false);
+			stakeMob.setInvulnerable(false);
+			stakeMob = null;
+		}
 		for (Fighter f : fighters) {
 			if (f.entity != null && !f.entity.isRemoved()) {
 				Vec3 p = f.entity.position();

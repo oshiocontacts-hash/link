@@ -3,6 +3,7 @@ package com.fishfight.command;
 import com.fishfight.FishFight;
 import com.fishfight.FishFightConfig;
 import com.fishfight.battle.FishBattleManager;
+import com.fishfight.battle.FishFightRanking;
 import com.fishfight.fish.FishGenerator;
 import com.fishfight.fish.FishRarity;
 import com.fishfight.fish.FishSpecies;
@@ -61,7 +62,17 @@ public final class FishFightCommand {
 								.executes(ctx -> {
 									FishBattleManager.challenge(ctx.getSource().getPlayerOrException(), EntityArgument.getPlayer(ctx, "player"));
 									return 1;
-								})))
+								})
+								// 賭けバトル：負けた方の魚がもらえる
+								.then(Commands.literal("bet").executes(ctx -> {
+									FishBattleManager.challenge(ctx.getSource().getPlayerOrException(), EntityArgument.getPlayer(ctx, "player"), true);
+									return 1;
+								}))))
+				.then(Commands.literal("show").executes(ctx -> {
+					FishBattleManager.show(ctx.getSource().getPlayerOrException());
+					return 1;
+				}))
+				.then(Commands.literal("ranking").executes(ctx -> ranking(ctx.getSource())))
 				.then(Commands.literal("accept").executes(ctx -> {
 					FishBattleManager.accept(ctx.getSource().getPlayerOrException());
 					return 1;
@@ -141,7 +152,7 @@ public final class FishFightCommand {
 	}
 
 	private static int help(CommandSourceStack source) {
-		for (String line : List.of("title", "fish", "skills", "challenge", "accept", "practice", "info", "kit", "settings", "give")) {
+		for (String line : List.of("title", "fish", "skills", "challenge", "accept", "bet", "mob", "practice", "show", "ranking", "info", "kit", "settings")) {
 			ChatFormatting color = line.equals("title") ? ChatFormatting.GOLD : ChatFormatting.GRAY;
 			source.sendSuccess(() -> FishFight.tr("help." + line).withStyle(color), false);
 		}
@@ -166,6 +177,21 @@ public final class FishFightCommand {
 		}
 		source.sendSuccess(() -> FishFight.tr("command.kit", KIT.size()).withStyle(ChatFormatting.GREEN), false);
 		return KIT.size();
+	}
+
+	private static int ranking(CommandSourceStack source) {
+		List<FishFightRanking.Entry> top = FishFightRanking.top(source.getServer(), 10);
+		source.sendSuccess(() -> FishFight.tr("ranking.title").withStyle(ChatFormatting.GOLD), false);
+		if (top.isEmpty()) {
+			source.sendSuccess(() -> FishFight.tr("ranking.empty").withStyle(ChatFormatting.GRAY), false);
+		}
+		for (int i = 0; i < top.size(); i++) {
+			FishFightRanking.Entry e = top.get(i);
+			int rank = i + 1;
+			source.sendSuccess(() -> FishFight.tr("ranking.line", rank, e.name, e.wins, e.losses, e.mobKills)
+					.withStyle(rank == 1 ? ChatFormatting.YELLOW : ChatFormatting.WHITE), false);
+		}
+		return top.size();
 	}
 
 	private static int showSettings(CommandSourceStack source) {

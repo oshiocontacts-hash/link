@@ -21,8 +21,8 @@ public final class FishFightConfig {
 	public boolean slowmo = true;
 	/** バトルの流れをチャットに出す。false ならアクションバーに出して画面をすっきりさせる */
 	public boolean chatLog = true;
-	/** 実況のツッコミを入れる */
-	public boolean announcer = true;
+	/** 実況のツッコミを入れる（マルチプレイの動画では会話の邪魔になるので初期はオフ） */
+	public boolean announcer = false;
 
 	public static FishFightConfig get() {
 		if (instance == null) {
