@@ -2,6 +2,7 @@ package com.fishfight.client;
 
 import com.fishfight.FishFight;
 import com.fishfight.entity.BattleFishEntity;
+import com.fishfight.fish.FishSpecies;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -15,16 +16,23 @@ public class BattleFishRenderer extends MobRenderer<BattleFishEntity, BattleFish
 
 	/** サメが覚醒して人型になったらこちらで描く */
 	private final SharkManRenderer sharkMan;
+	/** シーホース（見た目は馬） */
+	private final SeahorseRenderer seahorse;
 
 	public BattleFishRenderer(EntityRendererProvider.Context context) {
 		super(context, new BattleFishModel(context.bakeLayer(BattleFishModel.LAYER)), 0.4f);
 		this.sharkMan = new SharkManRenderer(context);
+		this.seahorse = new SeahorseRenderer(context);
 	}
 
 	@Override
 	public void render(BattleFishEntity entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
 		if (entity.isHumanoid()) {
 			sharkMan.render(entity, entityYaw, partialTick, poseStack, buffer, packedLight);
+			return;
+		}
+		if (entity.getSpecies() == FishSpecies.SEAHORSE) {
+			seahorse.render(entity, entityYaw, partialTick, poseStack, buffer, packedLight);
 			return;
 		}
 		super.render(entity, entityYaw, partialTick, poseStack, buffer, packedLight);

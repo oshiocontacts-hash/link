@@ -20,6 +20,8 @@ public enum FishSpecies implements StringRepresentable {
 	MARLIN("marlin", Habitat.OCEAN, 6f, 0x3570A8, 150, 450, 15f, 95, 24, 11, 22, 10, 1.7f, 1.15f, 0.9f, 1.1f, 1.9f),
 	SHARK("shark", Habitat.OCEAN, 4f, 0x7D8A94, 150, 600, 12f, 130, 26, 15, 14, 8, 1.9f, 1.3f, 1.3f, 1.2f, 2.0f),
 	OARFISH("oarfish", Habitat.OCEAN, 1.5f, 0xC8D0E0, 300, 800, 2f, 120, 20, 18, 18, 10, 2.2f, 1.1f, 0.55f, 1.3f, 3.0f),
+	// 体長はタツノオトシゴなのに、重さと見た目は馬
+	SEAHORSE("seahorse", Habitat.OCEAN, 8f, 0x8B5A2B, 12, 30, 60000f, 95, 17, 13, 20, 7, 1.5f, 1.0f, 1.0f, 1.0f, 1.0f),
 	COELACANTH("coelacanth", Habitat.ANY, 0.8f, 0x3C4E7A, 100, 200, 17f, 140, 22, 22, 12, 8, 2.4f, 1.1f, 1.3f, 1.2f, 1.5f);
 
 	public static final Codec<FishSpecies> CODEC = StringRepresentable.fromEnum(FishSpecies::values);
@@ -74,10 +76,14 @@ public enum FishSpecies implements StringRepresentable {
 		return Component.translatable("item.fishfight." + id);
 	}
 
-	/** 種類ごとの固有能力（あれば）。サメは「シャークマン覚醒」 */
+	/** 種類ごとの固有能力（あれば）。サメは「シャークマン覚醒」、シーホースは「馬力」 */
 	@Nullable
 	public String uniqueAbility() {
-		return this == SHARK ? "shark_man" : null;
+		return switch (this) {
+			case SHARK -> "shark_man";
+			case SEAHORSE -> "horsepower";
+			default -> null;
+		};
 	}
 
 	public static FishSpecies byId(String id) {

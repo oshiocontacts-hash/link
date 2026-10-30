@@ -105,7 +105,8 @@ final class DemoDriver {
 		step("battle 1", 120, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
 			command(mc, "tp @s ~ ~ ~ 0 18");
-			command(mc, "fishfight practice");
+			// 相手はシーホース（どう見ても馬）
+			command(mc, "fishfight practice seahorse rare leg_sprout");
 			battleTicks = 0;
 		});
 		step("empty hand 1", 10, mc -> true, DemoDriver::stepBack);

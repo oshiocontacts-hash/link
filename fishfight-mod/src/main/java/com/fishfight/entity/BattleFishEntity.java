@@ -66,6 +66,8 @@ public class BattleFishEntity extends PathfinderMob {
 	/** バトルの中心からこれ以上離れたら引き戻す */
 	private static final double LEASH = 14.0;
 	private static final EntityDimensions HUMANOID_DIMENSIONS = EntityDimensions.scalable(0.9f, 1.95f);
+	/** シーホースは馬なので大きい */
+	private static final EntityDimensions HORSE_DIMENSIONS = EntityDimensions.scalable(1.3f, 1.0f);
 
 	// ---- クライアント側のアニメーション ----
 	public int attackAnim;
@@ -298,6 +300,9 @@ public class BattleFishEntity extends PathfinderMob {
 			hopCooldown = 5 + random.nextInt(10);
 			face(hop);
 			playSound(SoundEvents.COD_FLOP, 0.5f, 0.9f + random.nextFloat() * 0.3f);
+			if (isSeahorse() && random.nextFloat() < 0.3f) {
+				playSound(SoundEvents.HORSE_AMBIENT, 0.8f, 1.0f + random.nextFloat() * 0.2f);
+			}
 		}
 	}
 
@@ -370,6 +375,12 @@ public class BattleFishEntity extends PathfinderMob {
 			playSound(punch ? SoundEvents.PLAYER_ATTACK_KNOCKBACK : SoundEvents.PLAYER_ATTACK_STRONG, 0.8f, 1.1f);
 		}
 		float dealt = opponent.takeFishDamage(this, Math.max(1f, damage));
+		if (isSeahorse() && dealt > 0f) {
+			// 固有能力「馬力」：思いきり蹴り飛ばす
+			Vec3 away = opponent.position().subtract(position()).normalize();
+			opponent.knockback(1.4, -away.x, -away.z);
+			playSound(SoundEvents.HORSE_ANGRY, 0.8f, 1.0f);
+		}
 		if (fighter.stats.has(Mutation.ELECTRIC) && opponent.isAlive() && random.nextFloat() < 0.15f) {
 			opponent.stun(30);
 			announce(null, Component.translatable("fishfight.battle.paralyze", opponent.fighter.name));
@@ -548,7 +559,7 @@ public class BattleFishEntity extends PathfinderMob {
 	// ---- サメの固有能力「シャークマン覚醒」 ----
 
 	private boolean canTransform() {
-		return fighter != null && fighter.stats.species().uniqueAbility() != null && !transformed && isAlive();
+		return fighter != null && "shark_man".equals(fighter.stats.species().uniqueAbility()) && !transformed && isAlive();
 	}
 
 	private void startTransform() {
@@ -626,12 +637,18 @@ public class BattleFishEntity extends PathfinderMob {
 	@Override
 	public EntityDimensions getDefaultDimensions(Pose pose) {
 		// 人型になったら背が高くなる
-		return isHumanoid() ? HUMANOID_DIMENSIONS : super.getDefaultDimensions(pose);
+		if (isHumanoid()) {
+			return HUMANOID_DIMENSIONS;
+		}
+		return getSpecies() == FishSpecies.SEAHORSE ? HORSE_DIMENSIONS : super.getDefaultDimensions(pose);
 	}
 
 	@Override
 	public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
 		super.onSyncedDataUpdated(key);
+		if (SPECIES.equals(key)) {
+			refreshDimensions();
+		}
 		if (HUMANOID.equals(key)) {
 			refreshDimensions();
 			if (level().isClientSide && isHumanoid()) {
@@ -731,13 +748,17 @@ public class BattleFishEntity extends PathfinderMob {
 		return false;
 	}
 
+	private boolean isSeahorse() {
+		return getSpecies() == FishSpecies.SEAHORSE;
+	}
+
 	@Override
 	protected SoundEvent getHurtSound(DamageSource source) {
-		return SoundEvents.COD_HURT;
+		return isSeahorse() ? SoundEvents.HORSE_HURT : SoundEvents.COD_HURT;
 	}
 
 	@Override
 	protected SoundEvent getDeathSound() {
-		return SoundEvents.COD_DEATH;
+		return isSeahorse() ? SoundEvents.HORSE_DEATH : SoundEvents.COD_DEATH;
 	}
 }
