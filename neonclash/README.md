@@ -74,7 +74,18 @@ neonclash/
   core/   Minecraft 非依存のロジック（ビート判定、ブリンクのチャージと安全位置、剣の溜め、スタイル、ラウンド進行、強化抽選、スロー範囲…）＋ JUnit 5
   mod/    Forge 層（config、ネットワーク、TaCZ 連携、試合進行、HUD、GameTest）。core のクラスは mod jar に同梱
   docs/   テストレポート、手触り調整リスト、ビルド失敗ログ
+  tools/sim/  簡易プレイテスト：core のロジックで 2v2 のボット戦を動かして動画にする（Minecraft は不要）
 ```
+
+### 簡易プレイテスト（Minecraft なしで動く）
+
+```bash
+./gradlew -Pneonclash.coreOnly=true :core:jar
+javac -encoding UTF-8 -cp core/build/libs/neonclash-core-0.1.0.jar -d build/sim tools/sim/PlaytestSim.java
+java -Djava.awt.headless=true -cp core/build/libs/neonclash-core-0.1.0.jar:build/sim PlaytestSim playtest.mp4   # ffmpeg が必要
+```
+
+実機映像ではなく、core の判定（ブリンク・剣の溜め・ビート・スタイル・ラウンド・強化抽選）を 2D 俯瞰で動かしたものです。終了時に集計を標準出力へ出します。
 
 ### ビルド
 
@@ -132,7 +143,7 @@ neonclash/
 19. ビートの判定はサーバー時刻（ms）で、プレイヤーの ping/2（上限 150ms）を差し引く。HUD の脈動と拍のクリック音は、
     サーバー時刻に同期したクライアントの時計で鳴らす（サーバー tick の 50ms 刻みに縛られないため）。BPM 変更は直前の拍を基準に切り替えて拍番号を連続させる。
     猶予の境界ちょうど（±100ms）は猶予内。
-20. 移動強化は試合中のプレイヤーだけ（`movement.onlyInMatch`）。剣・ブリンク・パリィ・切り札は試合外でも練習できる。
+20. 移動強化は試合中のプレイヤーだけ（`movement.onlyInMatch`）。剣・ブリンクは試合外でも練習できる。パリィと切り札はプレイヤーは試合中だけ（試合外で `/kill` を耐えるなどを防ぐ）。
 21. ロードアウトはインベントリを消さず、持っていない物だけ足す（他の持ち物を壊さないため）。ゲームモードは試合中 ADVENTURE、終了時に元へ戻す。
 22. 効果音はバニラの音イベントを参照（オリジナル音源を用意できないため）。命中音とキル音は別の音で、キル音は連続キルでピッチが上がる。
 23. スロー時の彩度は PostChain（バニラの `color_convolve`）を GUI 描画直前に掛ける。uniform を実行時に変える API が無いので、彩度の値は shader JSON 側。

@@ -10,6 +10,11 @@ public final class ActionHandler {
     }
 
     public static void handle(ServerPlayer player, C2SActionPacket.Action action, int arg) {
+        // 強化選択はラウンド間に行うので、脱落して観戦中のプレイヤーからも受け付ける
+        if (action == C2SActionPacket.Action.CHOOSE_UPGRADE) {
+            MatchRegistry.findFor(player.getUUID()).ifPresent(m -> m.choose(player.getUUID(), arg));
+            return;
+        }
         if (!player.isAlive() || player.isSpectator()) {
             return;
         }
@@ -21,7 +26,8 @@ public final class ActionHandler {
             case BLINK -> BlinkService.tryBlink(c);
             case PARRY -> SkillService.tryParry(c);
             case SWORD -> SwordService.tryStartWindup(c);
-            case CHOOSE_UPGRADE -> MatchRegistry.findFor(player.getUUID()).ifPresent(m -> m.choose(player.getUUID(), arg));
+            case CHOOSE_UPGRADE -> {
+            }
         }
     }
 }

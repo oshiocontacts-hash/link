@@ -32,10 +32,14 @@ public final class ClientEvents {
     private ClientEvents() {
     }
 
+    /** 前の tick で攻撃キーが押されていたか（押しっぱなしの連続発火を除くため） */
+    private static boolean attackHeldLastTick;
+
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getInstance();
+        attackHeldLastTick = mc.options.keyAttack.isDown();
         if (mc.player == null) return;
         ClientState.tick();
         while (NCKeys.BLINK.consumeClick()) {
@@ -76,7 +80,10 @@ public final class ClientEvents {
         if (!event.isAttack() || mc.player == null || !SwordService.isHoldingBlade(mc.player)) return;
         event.setCanceled(true);
         event.setSwingHand(false);
-        NCNetwork.sendToServer(new C2SActionPacket(C2SActionPacket.Action.SWORD, 0));
+        // ブロックを押しっぱなしだと毎 tick 発火するので、押した瞬間だけ送る
+        if (!attackHeldLastTick) {
+            NCNetwork.sendToServer(new C2SActionPacket(C2SActionPacket.Action.SWORD, 0));
+        }
     }
 
     @SubscribeEvent
@@ -139,6 +146,7 @@ public final class ClientEvents {
         if (a > 0.05f && NCConfig.CLIENT.slowMoDesaturate.get()) {
             SlowMoShader.process(event.getPartialTick());
             RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
         }
     }
 

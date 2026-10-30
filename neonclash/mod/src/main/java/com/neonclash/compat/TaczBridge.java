@@ -13,6 +13,7 @@ import com.neonclash.game.StyleService;
 import com.neonclash.game.SwordService;
 import com.neonclash.network.NCNetwork;
 import com.neonclash.network.S2CFeedbackPacket;
+import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.event.common.EntityHurtByGunEvent;
 import com.tacz.guns.api.event.common.EntityKillByGunEvent;
 import com.tacz.guns.api.event.common.GunFireEvent;
@@ -58,7 +59,13 @@ public final class TaczBridge {
     public static ItemStack makeGun(String gunId, int ammo) {
         ResourceLocation id = ResourceLocation.tryParse(gunId);
         if (id == null) return ItemStack.EMPTY;
-        return GunItemBuilder.create().setId(id).setAmmoCount(ammo).setAmmoInBarrel(ammo > 0).build();
+        GunItemBuilder b = GunItemBuilder.create().setId(id).setAmmoCount(ammo).setAmmoInBarrel(ammo > 0);
+        // TaCZ 自身のアイテム生成と同じく、発射モードは定義の先頭、熱データは定義に従う
+        TimelessAPI.getCommonGunIndex(id).ifPresent(idx -> {
+            if (!idx.getGunData().getFireModeSet().isEmpty()) b.setFireMode(idx.getGunData().getFireModeSet().get(0));
+            b.setHeatData(idx.getGunData().hasHeatData());
+        });
+        return b.build();
     }
 
     public static ItemStack makeAmmo(String ammoId, int count) {

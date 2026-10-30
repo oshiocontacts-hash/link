@@ -32,7 +32,9 @@ public final class HudOverlay {
 
         drawSlowMoBars(g, w, h, pt);
         drawVignettes(g, w, h, hud);
-        drawCrosshair(g, w / 2, h / 2, teamRgb, pt);
+        if (ClientState.inMatch() && mc.options.getCameraType().isFirstPerson() && !mc.player.isSpectator()) {
+            drawCrosshair(g, w / 2, h / 2, teamRgb, pt);
+        }
 
         if (hud == null) return;
         float s = NCConfig.CLIENT.hudScale.get().floatValue();

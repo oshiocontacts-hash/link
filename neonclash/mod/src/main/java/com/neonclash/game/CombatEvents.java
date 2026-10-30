@@ -34,6 +34,11 @@ public final class CombatEvents {
         return src.getEntity() instanceof LivingEntity le ? le : null;
     }
 
+    /** プレイヤーのパリィ・切り札は試合中だけ（/kill を耐える等を防ぐ）。モブは明示的に登録したものなので常に有効。 */
+    private static boolean skillsActive(Combatant c) {
+        return c.inMatch || !(c.entity() instanceof net.minecraft.world.entity.player.Player);
+    }
+
     /** ダメージ判定の前：脱落者・味方撃ち・パリィ。 */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onAttack(LivingAttackEvent event) {
@@ -51,7 +56,7 @@ public final class CombatEvents {
             event.setCanceled(true);
             return;
         }
-        if (attacker != null && attacker != victim && SkillService.onIncomingAttack(vc, attacker)) {
+        if (attacker != null && attacker != victim && skillsActive(vc) && SkillService.onIncomingAttack(vc, attacker)) {
             event.setCanceled(true);
         }
     }
@@ -74,7 +79,7 @@ public final class CombatEvents {
         Combatant vc = Combatants.get(victim);
         if (vc == null || vc.eliminated) return;
 
-        if (SkillService.tryLastStand(vc)) {
+        if (skillsActive(vc) && SkillService.tryLastStand(vc)) {
             event.setCanceled(true);
             return;
         }

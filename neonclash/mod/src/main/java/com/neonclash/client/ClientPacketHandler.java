@@ -95,7 +95,8 @@ public final class ClientPacketHandler {
         Minecraft mc = Minecraft.getInstance();
         if (p.offers().isEmpty()) {
             if (mc.screen instanceof UpgradeScreen) mc.setScreen(null);
-        } else if (!(mc.screen instanceof UpgradeScreen) && (mc.screen == null)) {
+        } else if (!(mc.screen instanceof UpgradeScreen)) {
+            // チャットやインベントリを開いていても 3 択を前に出す（5 秒しか無いため）
             mc.setScreen(new UpgradeScreen());
         }
     }
