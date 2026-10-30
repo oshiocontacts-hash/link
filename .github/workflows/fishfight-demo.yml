@@ -52,6 +52,7 @@ jobs:
           narrator:0
           fullscreen:false
           soundCategory_master:0.0
+          fov:-0.35
           EOF
 
       - name: Run demo and record

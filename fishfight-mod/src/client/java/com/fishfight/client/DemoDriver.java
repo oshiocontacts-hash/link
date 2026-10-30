@@ -115,7 +115,7 @@ final class DemoDriver {
 		step("battle 2", 10, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
 			// バトル1で下がった分を戻してから始める
-			command(mc, "tp @s ~ ~ ~3 0 18");
+			command(mc, "tp @s ~ ~ ~2 0 18");
 			// 強い相手と戦わせて、サメを追い詰めて覚醒させる
 			command(mc, "fishfight practice coelacanth legendary arm_sprout regenerate");
 			battleTicks = 0;
@@ -222,7 +222,7 @@ final class DemoDriver {
 	/** バトルが始まったら手を空にして、少し下がって全体を映す */
 	private static void stepBack(Minecraft mc) {
 		mc.player.getInventory().selected = 8;
-		command(mc, "tp @s ~ ~ ~-3");
+		command(mc, "tp @s ~ ~ ~-2");
 	}
 
 		private static void cast(Minecraft mc) {
