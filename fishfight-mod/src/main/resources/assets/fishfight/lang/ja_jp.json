@@ -109,6 +109,7 @@
   "fishfight.skill.frenzy.desc": "HPが40%以下で攻撃が速くなる",
   "fishfight.battle.skill.arm_sprout": "な、なんと！ %s からいきなりムキムキの腕が生えてきた！！（攻撃力アップ）",
   "fishfight.battle.skill.leg_sprout": "%s から脚が生えた！ もう跳ねずに戦える！",
+  "fishfight.battle.skill.leg_sprout_seahorse": "%s の下側から、新しい脚が生えてきた！？（自前の脚は使わない）",
   "fishfight.battle.skill.giantize": "%s が巨大化した！",
   "fishfight.battle.skill.regenerate": "%s は傷を再生した！（HP +%s）",
   "fishfight.battle.skill.discharge": "%s の放電！ %s はしびれた！",

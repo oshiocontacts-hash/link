@@ -109,6 +109,7 @@
   "fishfight.skill.frenzy.desc": "Attacks faster below 40% HP",
   "fishfight.battle.skill.arm_sprout": "WHAT?! %s suddenly sprouted buff ARMS!! (attack up)",
   "fishfight.battle.skill.leg_sprout": "%s grew LEGS! No more flopping around!",
+  "fishfight.battle.skill.leg_sprout_seahorse": "New legs grew out of %s's underside?! (it will not use its own)",
   "fishfight.battle.skill.giantize": "%s grew gigantic!",
   "fishfight.battle.skill.regenerate": "%s regenerated! (+%s HP)",
   "fishfight.battle.skill.discharge": "%s discharged! %s is stunned!",

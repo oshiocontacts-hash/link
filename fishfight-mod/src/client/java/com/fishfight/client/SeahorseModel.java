@@ -11,7 +11,8 @@ import net.minecraft.util.Mth;
 
 /**
  * シーホース。中身はバニラの馬モデルそのもの（魚ではない）。
- * 陸では横倒しのまま4本脚をジタバタさせ、脚生えが発動すると馬として立って歩く。
+ * 陸では横倒しのまま4本脚をジタバタさせる。脚生えが発動しても立ち上がらず、
+ * 横倒しのまま下側から人間の脚が生えて歩く（脚は {@link SeahorseRenderer} が描く）。
  */
 public class SeahorseModel extends EntityModel<BattleFishEntity> {
 	/** 鞍・手綱・子馬用の脚など、出さない部品 */
@@ -61,7 +62,15 @@ public class SeahorseModel extends EntityModel<BattleFishEntity> {
 		float partialTick = ageInTicks - entity.tickCount;
 
 		headParts.xRot = 0.52f;
-		if (entity.isFlopping()) {
+		if (entity.hasLegs() && !entity.isInWater()) {
+			// 下から生えた人間の脚で歩いている：自前の4本脚はピンと伸ばしたまま使わない
+			float twitch = Mth.sin(ageInTicks * 0.3f) * 0.05f;
+			leftFrontLeg.xRot = twitch;
+			rightFrontLeg.xRot = -twitch;
+			leftHindLeg.xRot = twitch;
+			rightHindLeg.xRot = -twitch;
+			headParts.xRot = 0.3f;
+		} else if (entity.isFlopping()) {
 			// 横倒しで4本脚をバラバラにジタバタ
 			float t = ageInTicks * 1.3f;
 			leftFrontLeg.xRot = Mth.sin(t) * 0.9f;

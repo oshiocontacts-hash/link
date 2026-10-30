@@ -533,7 +533,8 @@ public class BattleFishEntity extends PathfinderMob {
 		this.level().broadcastEntityEvent(this, EVENT_SPROUT_LEGS);
 		spdMul *= 1.2f;
 		getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(getAttributeBaseValue(Attributes.MOVEMENT_SPEED) * 1.2);
-		announce(Skill.LEG_SPROUT, Component.translatable("fishfight.battle.skill.leg_sprout", fighter.name));
+		announce(Skill.LEG_SPROUT, Component.translatable(isSeahorse()
+				? "fishfight.battle.skill.leg_sprout_seahorse" : "fishfight.battle.skill.leg_sprout", fighter.name));
 		playSound(SoundEvents.SLIME_SQUISH, 1.0f, 0.6f);
 		particles(this, ParticleTypes.POOF, 20);
 		stunTicks = Math.max(stunTicks, 10);
