@@ -108,7 +108,7 @@ final class DemoDriver {
 			command(mc, "fishfight practice");
 			battleTicks = 0;
 		});
-		step("empty hand 1", 10, mc -> true, mc -> mc.player.getInventory().selected = 8);
+		step("empty hand 1", 10, mc -> true, DemoDriver::stepBack);
 		step("wait battle 1", 100, DemoDriver::battleOver, mc -> { });
 		step("select shark", 40, mc -> true, mc -> select(mc, FishSpecies.SHARK));
 		step("battle 2", 10, mc -> true, mc -> {
@@ -117,7 +117,7 @@ final class DemoDriver {
 			command(mc, "fishfight practice coelacanth legendary arm_sprout regenerate");
 			battleTicks = 0;
 		});
-		step("empty hand 2", 10, mc -> true, mc -> mc.player.getInventory().selected = 8);
+		step("empty hand 2", 10, mc -> true, DemoDriver::stepBack);
 		step("wait battle 2", 100, DemoDriver::battleOver, mc -> { });
 		step("finish", 40, mc -> true, DemoDriver::finish);
 	}
@@ -216,7 +216,13 @@ final class DemoDriver {
 		mc.player.connection.sendCommand(command);
 	}
 
-	private static void cast(Minecraft mc) {
+	/** バトルが始まったら手を空にして、少し下がって全体を映す */
+	private static void stepBack(Minecraft mc) {
+		mc.player.getInventory().selected = 8;
+		command(mc, "tp @s ~ ~ ~-3");
+	}
+
+		private static void cast(Minecraft mc) {
 		mc.player.getInventory().selected = 0;
 		mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
 	}
