@@ -14,17 +14,19 @@ import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
+import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
 
 /**
- * 汎用の魚モデル。種類ごとに体の比率を変え、腕と脚は必要な時だけ出す。
+ * 汎用の魚モデル。種類ごとに体の比率と色を変え、腕と脚は生えている時だけ出す。
+ * 体だけ種類の色で染め、目・腕・脚は元の色のまま描く。
  */
 public class BattleFishModel extends EntityModel<BattleFishEntity> {
 	public static final ModelLayerLocation LAYER = new ModelLayerLocation(FishFight.id("battle_fish"), "main");
+	private static final int GOLD_TINT = 0xFFFFD040;
 
 	private final ModelPart body;
 	private final ModelPart tail;
-	private final ModelPart dorsal;
 	private final ModelPart finLeft;
 	private final ModelPart finRight;
 	private final ModelPart eyes;
@@ -32,11 +34,11 @@ public class BattleFishModel extends EntityModel<BattleFishEntity> {
 	private final ModelPart armRight;
 	private final ModelPart legLeft;
 	private final ModelPart legRight;
+	private int tint = -1;
 
 	public BattleFishModel(ModelPart root) {
 		this.body = root.getChild("body");
 		this.tail = body.getChild("tail");
-		this.dorsal = body.getChild("dorsal");
 		this.finLeft = body.getChild("fin_left");
 		this.finRight = body.getChild("fin_right");
 		this.eyes = body.getChild("eyes");
@@ -101,40 +103,39 @@ public class BattleFishModel extends EntityModel<BattleFishEntity> {
 	public void setupAnim(BattleFishEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
 		float partialTick = ageInTicks - entity.tickCount;
 		FishSpecies species = entity.getSpecies();
+		tint = entity.isGolden() ? GOLD_TINT : 0xFF000000 | species.color;
+
 		float ws = species.widthScale;
 		float hs = species.heightScale;
 		float ls = species.lengthScale;
-		boolean defeated = entity.isDefeated();
-		float swimSpeed = defeated ? 0.05f : 0.3f;
+		float puff = entity.isPuffed() ? 1.4f : 1f;
+		boolean flopping = entity.isFlopping();
+		boolean dead = entity.isDeadOrDying();
 
-		body.xScale = ws;
-		body.yScale = hs;
+		body.xScale = ws * puff;
+		body.yScale = hs * puff;
 		body.zScale = ls;
-		body.yRot = Mth.sin(ageInTicks * swimSpeed) * 0.12f;
-		tail.yRot = Mth.sin(ageInTicks * swimSpeed * 2f) * 0.5f;
-		dorsal.yRot = 0f;
+		// 陸で跳ねている時は尾びれを激しくバタバタさせる
+		float wiggle = dead ? 0f : flopping ? 0.9f : 0.5f;
+		float wiggleSpeed = flopping ? 1.4f : 0.6f;
+		body.yRot = Mth.sin(ageInTicks * wiggleSpeed * 0.5f) * (flopping ? 0.25f : 0.1f);
+		tail.yRot = Mth.sin(ageInTicks * wiggleSpeed) * wiggle;
 		finLeft.zRot = 0.6f + Mth.sin(ageInTicks * 0.4f) * 0.25f;
 		finRight.zRot = -finLeft.zRot;
 
 		// 腕
 		armLeft.visible = entity.hasArms();
 		armRight.visible = entity.hasArms();
-		float armScale = 1f;
-		if (entity.armsSproutAnim > 0) {
-			armScale = easeOutBack(1f - (entity.armsSproutAnim - partialTick) / 20f);
-		}
+		float armScale = entity.armsSproutAnim > 0 ? easeOutBack(1f - (entity.armsSproutAnim - partialTick) / 20f) : 1f;
 		setScale(armLeft, armScale);
 		setScale(armRight, armScale);
-		armLeft.x = 2f * ws + 0.3f;
-		armRight.x = -(2f * ws + 0.3f);
+		armLeft.x = 2f * ws * puff + 0.3f;
+		armRight.x = -armLeft.x;
 		armLeft.y = armRight.y = 16f + hs;
 		armLeft.z = armRight.z = -2f * ls;
-
 		float flex = Mth.sin(ageInTicks * 0.15f) * 0.1f;
-		armLeft.xRot = -0.3f;
-		armRight.xRot = -0.3f;
-		armLeft.yRot = 0f;
-		armRight.yRot = 0f;
+		armLeft.xRot = armRight.xRot = -0.3f;
+		armLeft.yRot = armRight.yRot = 0f;
 		armLeft.zRot = -0.7f - flex;
 		armRight.zRot = 0.7f + flex;
 		if (entity.attackAnim > 0) {
@@ -143,25 +144,18 @@ public class BattleFishModel extends EntityModel<BattleFishEntity> {
 			punching.xRot = -0.3f - 1.4f * swing;
 			punching.zRot *= 1f - swing * 0.8f;
 		}
-		if (defeated) {
-			armLeft.zRot = -1.4f;
-			armRight.zRot = 1.4f;
-		}
 
-		// 脚
+		// 脚：歩いた分だけ振る
 		legLeft.visible = entity.hasLegs();
 		legRight.visible = entity.hasLegs();
-		float legScale = 1f;
-		if (entity.legsSproutAnim > 0) {
-			legScale = easeOutBack(1f - (entity.legsSproutAnim - partialTick) / 20f);
-		}
+		float legScale = entity.legsSproutAnim > 0 ? easeOutBack(1f - (entity.legsSproutAnim - partialTick) / 20f) : 1f;
 		setScale(legLeft, legScale);
 		setScale(legRight, legScale);
 		legLeft.x = ws;
 		legRight.x = -ws;
 		legLeft.y = legRight.y = 16f + 4f * hs - 0.5f;
 		legLeft.z = legRight.z = ls;
-		float walk = defeated ? 0f : Mth.sin(ageInTicks * 0.5f) * 0.5f;
+		float walk = Mth.cos(limbSwing * 0.9f) * 1.0f * Math.min(1f, limbSwingAmount * 1.5f);
 		legLeft.xRot = walk;
 		legRight.xRot = -walk;
 	}
@@ -180,14 +174,13 @@ public class BattleFishModel extends EntityModel<BattleFishEntity> {
 		return 1f + c3 * u * u * u + c1 * u * u;
 	}
 
-	public void renderBody(PoseStack poseStack, VertexConsumer buffer, int light, int overlay, int color) {
+	@Override
+	public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int light, int overlay, int color) {
+		// 体：種類の色で染める
 		eyes.visible = false;
-		body.render(poseStack, buffer, light, overlay, color);
+		body.render(poseStack, buffer, light, overlay, FastColor.ARGB32.multiply(tint, color));
 		eyes.visible = true;
-	}
-
-	/** 目・腕・脚（色を付けない部分） */
-	public void renderLimbs(PoseStack poseStack, VertexConsumer buffer, int light, int overlay, int color) {
+		// 目・腕・脚：そのままの色（肌色の腕が生えているのがいい）
 		poseStack.pushPose();
 		body.translateAndRotate(poseStack);
 		eyes.render(poseStack, buffer, light, overlay, color);
@@ -196,11 +189,5 @@ public class BattleFishModel extends EntityModel<BattleFishEntity> {
 		armRight.render(poseStack, buffer, light, overlay, color);
 		legLeft.render(poseStack, buffer, light, overlay, color);
 		legRight.render(poseStack, buffer, light, overlay, color);
-	}
-
-	@Override
-	public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int light, int overlay, int color) {
-		renderBody(poseStack, buffer, light, overlay, color);
-		renderLimbs(poseStack, buffer, light, overlay, color);
 	}
 }

@@ -142,7 +142,7 @@ public final class FishBattleManager {
 			Vec3 look = challenger.getLookAngle();
 			axis = new Vec3(look.x, 0, look.z);
 		}
-		Vec3 center = new Vec3((pa.x + pb.x) / 2, Math.max(pa.y, pb.y) + 1.0, (pa.z + pb.z) / 2);
+		Vec3 center = new Vec3((pa.x + pb.x) / 2, Math.max(pa.y, pb.y), (pa.z + pb.z) / 2);
 		Fighter fa = new Fighter(a, challenger.getUUID(), FishFight.tr("battle.owned", challenger.getDisplayName(), a.displayName()));
 		Fighter fb = new Fighter(b, target.getUUID(), FishFight.tr("battle.owned", target.getDisplayName(), b.displayName()));
 		BATTLES.add(new FishBattle(challenger.serverLevel(), center, axis, fa, fb, false));
@@ -180,7 +180,7 @@ public final class FishBattleManager {
 		Vec3 look = player.getLookAngle();
 		Vec3 forward = new Vec3(look.x, 0, look.z);
 		forward = forward.lengthSqr() < 1.0E-4 ? new Vec3(0, 0, 1) : forward.normalize();
-		Vec3 center = player.position().add(forward.scale(4.0)).add(0, 1.0, 0);
+		Vec3 center = player.position().add(forward.scale(5.0));
 		// プレイヤーから横向きに見えるように並べる
 		Vec3 axis = new Vec3(-forward.z, 0, forward.x);
 

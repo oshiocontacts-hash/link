@@ -1,7 +1,10 @@
 package com.fishfight.fish;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import net.minecraft.core.Holder;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.util.RandomSource;
@@ -71,15 +74,20 @@ public final class FishGenerator {
 	}
 
 	public static FishStats generate(RandomSource random, FishSpecies species, @Nullable FishRarity rarity, String catcher) {
-		return generate(random, species, rarity, catcher, null);
+		return generate(random, species, rarity, catcher, List.of(), List.of());
 	}
 
+	/**
+	 * @param forcedMutations 必ず付ける体質（テスト用）
+	 * @param forcedSkills 指定するとスキルはこれだけになる（テスト用）。空ならランダム
+	 */
 	public static FishStats generate(RandomSource random, FishSpecies species, @Nullable FishRarity rarity, String catcher,
-			@Nullable Mutation forced) {
+			Collection<Mutation> forcedMutations, Collection<Skill> forcedSkills) {
 		if (rarity == null) {
 			rarity = pickRarity(random, 0);
 		}
-		List<Mutation> mutations = rollMutations(random, rarity, forced);
+		List<Mutation> mutations = rollMutations(random, rarity, forcedMutations);
+		List<Skill> skills = forcedSkills.isEmpty() ? rollSkills(random, species, rarity, mutations) : List.copyOf(forcedSkills);
 		Personality personality = Personality.values()[random.nextInt(Personality.values().length)];
 
 		// 大きさ：レアなほど大きくなりやすい
@@ -112,18 +120,15 @@ public final class FishGenerator {
 		int spd = stat(random, species.baseSpd * rm * spdMul);
 		int crit = species.baseCrit + personality.critBonus + random.nextInt(5) + rarity.ordinal();
 
-		return new FishStats(species, rarity, size, weight, hp, atk, def, spd, crit, personality, mutations, catcher, 0);
+		return new FishStats(species, rarity, size, weight, hp, atk, def, spd, crit, personality, mutations, skills, catcher, 0);
 	}
 
 	private static int stat(RandomSource random, float value) {
 		return Math.max(1, Math.round(value * (0.9f + random.nextFloat() * 0.2f)));
 	}
 
-	private static List<Mutation> rollMutations(RandomSource random, FishRarity rarity, @Nullable Mutation forced) {
-		List<Mutation> result = new ArrayList<>();
-		if (forced != null) {
-			result.add(forced);
-		}
+	private static List<Mutation> rollMutations(RandomSource random, FishRarity rarity, Collection<Mutation> forced) {
+		List<Mutation> result = new ArrayList<>(forced);
 		float bonus = 1f + rarity.ordinal() * 0.25f;
 		for (Mutation m : Mutation.values()) {
 			if (result.size() >= 3) {
@@ -136,6 +141,47 @@ public final class FishGenerator {
 			}
 			if (random.nextFloat() < m.chance * bonus) {
 				result.add(m);
+			}
+		}
+		return result;
+	}
+
+	/** 種類ごとに覚えやすいスキル */
+	public static Set<Skill> affinity(FishSpecies species) {
+		return switch (species) {
+			case CARP -> EnumSet.of(Skill.GIANTIZE, Skill.REGENERATE);
+			case MACKEREL -> EnumSet.of(Skill.WATER_GUN);
+			case PUFFERFISH -> EnumSet.of(Skill.PUFF_UP);
+			case PIRANHA -> EnumSet.of(Skill.FRENZY);
+			case CATFISH -> EnumSet.of(Skill.DISCHARGE);
+			case TUNA, MARLIN -> EnumSet.of(Skill.CHARGE);
+			case SHARK -> EnumSet.of(Skill.FRENZY, Skill.CHARGE);
+			case OARFISH -> EnumSet.of(Skill.DISCHARGE, Skill.REGENERATE);
+			case COELACANTH -> EnumSet.of(Skill.ENDURE, Skill.LEG_SPROUT);
+		};
+	}
+
+	/** スキルは持っていない魚もいる。レアなほど多く持てる */
+	private static List<Skill> rollSkills(RandomSource random, FishSpecies species, FishRarity rarity, List<Mutation> mutations) {
+		int max = switch (rarity) {
+			case COMMON, UNCOMMON -> 1;
+			case RARE, EPIC -> 2;
+			case LEGENDARY, MYTHIC -> 3;
+		};
+		Set<Skill> favorite = affinity(species);
+		List<Skill> result = new ArrayList<>();
+		for (Skill skill : Skill.values()) {
+			if (result.size() >= max) {
+				break;
+			}
+			// 最初から腕・脚がある魚は「生える」スキルを持たない
+			if ((skill == Skill.ARM_SPROUT && mutations.contains(Mutation.ARMS))
+					|| (skill == Skill.LEG_SPROUT && mutations.contains(Mutation.LEGS))) {
+				continue;
+			}
+			float chance = skill.chance * (1f + rarity.ordinal() * 0.15f) + (favorite.contains(skill) ? 0.3f : 0f);
+			if (random.nextFloat() < chance) {
+				result.add(skill);
 			}
 		}
 		return result;

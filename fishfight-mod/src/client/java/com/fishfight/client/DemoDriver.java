@@ -35,7 +35,7 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
  */
 final class DemoDriver {
 	private static final String WORLD = "fishfight-demo";
-	private static final int MAX_TICKS = 20 * 60 * 5;
+	private static final int MAX_TICKS = 20 * 60 * 7;
 	/** 2tickごと＝10fpsで画面を保存する */
 	private static final int FRAME_INTERVAL = 2;
 
@@ -71,9 +71,12 @@ final class DemoDriver {
 			command(mc, "weather clear");
 			command(mc, "tp @s ~ 120 ~");
 			command(mc, "fill ~-10 119 ~-10 ~10 119 ~10 minecraft:smooth_quartz");
-			command(mc, "fill ~-4 119 ~0 ~4 119 ~8 minecraft:water");
 			command(mc, "fill ~-10 120 ~-10 ~10 130 ~10 minecraft:air");
-			command(mc, "tp @s ~ 120 ~-7 0 12");
+			// 魚が落ちないようにガラスの柵で囲む
+			command(mc, "fill ~-10 120 ~-10 ~10 120 ~10 minecraft:glass");
+			command(mc, "fill ~-9 120 ~-9 ~9 120 ~9 minecraft:air");
+			command(mc, "fill ~-4 119 ~5 ~4 119 ~9 minecraft:water");
+			command(mc, "tp @s ~ 120 ~-7 0 15");
 		});
 		step("title", 40, mc -> true, mc -> {
 			capturing = true;
@@ -87,10 +90,10 @@ final class DemoDriver {
 			mc.player.getInventory().selected = 0;
 		});
 		step("cast 1", 30, mc -> true, DemoDriver::cast);
-		step("catch shark", 60, mc -> true, mc -> command(mc, "fishfight testcatch shark epic arms"));
+		step("catch shark", 60, mc -> true, mc -> command(mc, "fishfight testcatch shark epic arms charge frenzy"));
 		step("wait minigame 1", 40, mc -> mc.screen == null, mc -> { });
 		step("cast 2", 50, mc -> true, DemoDriver::cast);
-		step("catch tuna", 60, mc -> true, mc -> command(mc, "fishfight testcatch tuna rare"));
+		step("catch tuna", 60, mc -> true, mc -> command(mc, "fishfight testcatch tuna rare arm_sprout leg_sprout"));
 		step("wait minigame 2", 40, mc -> mc.screen == null, mc -> { });
 		// 持ち替えはサーバーに次のtickで届くので、コマンドとは別のステップにする
 		step("select tuna", 40, mc -> true, mc -> select(mc, FishSpecies.TUNA));
@@ -100,7 +103,7 @@ final class DemoDriver {
 		});
 		step("battle 1", 120, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
-			command(mc, "tp @s ~ ~ ~ 0 0");
+			command(mc, "tp @s ~ ~ ~ 0 18");
 			command(mc, "fishfight practice");
 			battleTicks = 0;
 		});

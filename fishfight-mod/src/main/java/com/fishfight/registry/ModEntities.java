@@ -2,6 +2,7 @@ package com.fishfight.registry;
 
 import com.fishfight.FishFight;
 import com.fishfight.entity.BattleFishEntity;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
@@ -12,7 +13,7 @@ public final class ModEntities {
 			BuiltInRegistries.ENTITY_TYPE,
 			FishFight.id("battle_fish"),
 			EntityType.Builder.<BattleFishEntity>of(BattleFishEntity::new, MobCategory.MISC)
-					.sized(1.2f, 0.8f)
+					.sized(0.8f, 0.6f)
 					.clientTrackingRange(10)
 					.updateInterval(2)
 					.noSummon()
@@ -22,5 +23,6 @@ public final class ModEntities {
 	}
 
 	public static void init() {
+		FabricDefaultAttributeRegistry.register(BATTLE_FISH, BattleFishEntity.createAttributes());
 	}
 }

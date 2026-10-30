@@ -3,7 +3,6 @@ package com.fishfight.fish;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import net.minecraft.ChatFormatting;
@@ -27,6 +26,7 @@ public record FishStats(
 		int crit,
 		Personality personality,
 		List<Mutation> mutations,
+		List<Skill> skills,
 		String catcher,
 		int wins) {
 
@@ -42,6 +42,7 @@ public record FishStats(
 			Codec.INT.fieldOf("crit").forGetter(FishStats::crit),
 			Personality.CODEC.fieldOf("personality").forGetter(FishStats::personality),
 			Mutation.CODEC.listOf().optionalFieldOf("mutations", List.of()).forGetter(FishStats::mutations),
+			Skill.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(FishStats::skills),
 			Codec.STRING.optionalFieldOf("catcher", "").forGetter(FishStats::catcher),
 			Codec.INT.optionalFieldOf("wins", 0).forGetter(FishStats::wins)
 	).apply(i, FishStats::new));
@@ -50,14 +51,19 @@ public record FishStats(
 
 	public FishStats {
 		mutations = List.copyOf(mutations);
+		skills = List.copyOf(skills);
 	}
 
 	public boolean has(Mutation mutation) {
 		return mutations.contains(mutation);
 	}
 
+	public boolean has(Skill skill) {
+		return skills.contains(skill);
+	}
+
 	public FishStats withWins(int newWins) {
-		return new FishStats(species, rarity, size, weight, hp, atk, def, spd, crit, personality, mutations, catcher, newWins);
+		return new FishStats(species, rarity, size, weight, hp, atk, def, spd, crit, personality, mutations, skills, catcher, newWins);
 	}
 
 	/** ざっくりした総合力 */
@@ -69,6 +75,7 @@ public record FishStats(
 		if (has(Mutation.ELECTRIC) || has(Mutation.SPIKY)) {
 			p += 25;
 		}
+		p += skills.size() * 30;
 		return p;
 	}
 
@@ -108,18 +115,17 @@ public record FishStats(
 		lines.add(Component.translatable("fishfight.tooltip.stats2", spd, crit).withStyle(ChatFormatting.WHITE));
 		lines.add(Component.translatable("fishfight.tooltip.power", power()).withStyle(ChatFormatting.GOLD));
 		if (!mutations.isEmpty()) {
-			List<Component> names = new ArrayList<>();
-			for (Mutation m : mutations) {
-				names.add(m.displayName());
+			lines.add(Component.translatable("fishfight.tooltip.mutations", join(mutations.stream().map(Mutation::displayName).toList()))
+					.withStyle(ChatFormatting.GRAY));
+		}
+		if (skills.isEmpty()) {
+			lines.add(Component.translatable("fishfight.tooltip.no_skills").withStyle(ChatFormatting.DARK_GRAY));
+		} else {
+			lines.add(Component.translatable("fishfight.tooltip.skills").withStyle(ChatFormatting.GRAY));
+			for (Skill skill : skills) {
+				lines.add(Component.literal(" ・").withStyle(ChatFormatting.GRAY).append(skill.displayName())
+						.append(Component.literal(" ").append(skill.description()).withStyle(ChatFormatting.DARK_GRAY)));
 			}
-			MutableComponent joined = Component.empty();
-			for (int n = 0; n < names.size(); n++) {
-				if (n > 0) {
-					joined.append(Component.literal(", ").withStyle(ChatFormatting.GRAY));
-				}
-				joined.append(names.get(n));
-			}
-			lines.add(Component.translatable("fishfight.tooltip.mutations", joined).withStyle(ChatFormatting.GRAY));
 		}
 		if (wins > 0) {
 			lines.add(Component.translatable("fishfight.tooltip.wins", wins).withStyle(ChatFormatting.YELLOW));
@@ -127,5 +133,16 @@ public record FishStats(
 		if (!catcher.isEmpty()) {
 			lines.add(Component.translatable("fishfight.tooltip.catcher", catcher).withStyle(ChatFormatting.DARK_GRAY));
 		}
+	}
+
+	private static MutableComponent join(List<MutableComponent> parts) {
+		MutableComponent joined = Component.empty();
+		for (int n = 0; n < parts.size(); n++) {
+			if (n > 0) {
+				joined.append(Component.literal(", ").withStyle(ChatFormatting.GRAY));
+			}
+			joined.append(parts.get(n));
+		}
+		return joined;
 	}
 }
