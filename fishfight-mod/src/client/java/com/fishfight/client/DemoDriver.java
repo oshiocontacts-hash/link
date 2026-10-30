@@ -114,6 +114,8 @@ final class DemoDriver {
 		step("select shark", 40, mc -> true, mc -> select(mc, FishSpecies.SHARK));
 		step("battle 2", 10, mc -> true, mc -> {
 			mc.gui.getChat().clearMessages(false);
+			// バトル1で下がった分を戻してから始める
+			command(mc, "tp @s ~ ~ ~3 0 18");
 			// 強い相手と戦わせて、サメを追い詰めて覚醒させる
 			command(mc, "fishfight practice coelacanth legendary arm_sprout regenerate");
 			battleTicks = 0;
