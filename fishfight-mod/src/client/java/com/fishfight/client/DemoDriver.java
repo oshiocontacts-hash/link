@@ -76,7 +76,7 @@ final class DemoDriver {
 			// 魚が落ちないようにガラスの柵で囲む
 			command(mc, "fill ~-10 120 ~-10 ~10 120 ~10 minecraft:glass");
 			command(mc, "fill ~-9 120 ~-9 ~9 120 ~9 minecraft:air");
-			command(mc, "fill ~-4 119 ~5 ~4 119 ~9 minecraft:water");
+			command(mc, "fill ~-4 119 ~7 ~4 119 ~9 minecraft:water");
 			command(mc, "tp @s ~ 120 ~-7 0 15");
 		});
 		step("title", 40, mc -> true, mc -> {

@@ -63,6 +63,7 @@
   "fishfight.battle.fight": "FIGHT!",
   "fishfight.battle.paralyze": "  %s is paralyzed!",
   "fishfight.battle.sprout_arms_title": "%s grew ARMS!!",
+  "fishfight.battle.reset": "A long standoff... back to the start!",
   "fishfight.battle.timeout": "Time's up! The fish with more HP left wins!",
   "fishfight.battle.forfeit": "%s's owner left... (forfeit)",
   "fishfight.battle.defeated": "%s went belly-up...",

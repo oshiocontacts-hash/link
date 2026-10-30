@@ -41,6 +41,8 @@ public class FishBattle {
 	private static final int ENDING_TICKS = 60;
 	private static final double VIEW_RANGE = 48.0;
 	private static final double FORFEIT_RANGE = 64.0;
+	/** この時間どちらもHPが変わらなければ仕切り直す（水中と陸でにらみ合い等） */
+	private static final int STALEMATE_TICKS = 200;
 
 	private enum State { INTRO, FIGHT, ENDING, DONE }
 
@@ -51,8 +53,11 @@ public class FishBattle {
 	private final ServerBossEvent[] bars;
 	private final boolean practice;
 
+	private final Vec3[] startPositions = new Vec3[2];
 	private State state = State.INTRO;
 	private int timer;
+	private float lastHpSum = -1f;
+	private int idleTicks;
 	@Nullable
 	private Fighter winner;
 
@@ -65,8 +70,8 @@ public class FishBattle {
 
 		Vec3 dir = new Vec3(axis.x, 0, axis.z);
 		dir = dir.lengthSqr() < 1.0E-4 ? new Vec3(1, 0, 0) : dir.normalize();
-		spawn(a, center.subtract(dir.scale(2.0)), dir);
-		spawn(b, center.add(dir.scale(2.0)), dir.reverse());
+		startPositions[0] = spawn(a, center.subtract(dir.scale(2.0)), dir);
+		startPositions[1] = spawn(b, center.add(dir.scale(2.0)), dir.reverse());
 		a.entity.setOpponent(b.entity);
 		b.entity.setOpponent(a.entity);
 
@@ -94,7 +99,7 @@ public class FishBattle {
 		return list;
 	}
 
-	private void spawn(Fighter f, Vec3 pos, Vec3 facing) {
+	private Vec3 spawn(Fighter f, Vec3 pos, Vec3 facing) {
 		BattleFishEntity entity = ModEntities.BATTLE_FISH.create(level);
 		if (entity == null) {
 			throw new IllegalStateException("battle fish could not be created");
@@ -110,6 +115,7 @@ public class FishBattle {
 		entity.setup(this, f);
 		level.addFreshEntity(entity);
 		level.sendParticles(ParticleTypes.SPLASH, pos.x, y + 0.5, pos.z, 40, 0.4, 0.3, 0.4, 0.3);
+		return new Vec3(pos.x, y, pos.z);
 	}
 
 	public Vec3 center() {
@@ -182,6 +188,8 @@ public class FishBattle {
 		} else if (timer >= FIGHT_TICKS) {
 			announce(FishFight.tr("battle.timeout").withStyle(ChatFormatting.GRAY));
 			finish(fighters[0].hpRatio() >= fighters[1].hpRatio() ? fighters[0] : fighters[1]);
+		} else {
+			checkStalemate();
 		}
 	}
 
@@ -193,6 +201,30 @@ public class FishBattle {
 		if (timer >= ENDING_TICKS) {
 			cleanup();
 		}
+	}
+
+	/** しばらくどちらもダメージを受けていなければ、最初の位置に戻して仕切り直す */
+	private void checkStalemate() {
+		float hpSum = fighters[0].entity.getHealth() + fighters[1].entity.getHealth();
+		if (Math.abs(hpSum - lastHpSum) > 0.01f) {
+			lastHpSum = hpSum;
+			idleTicks = 0;
+			return;
+		}
+		if (++idleTicks < STALEMATE_TICKS) {
+			return;
+		}
+		idleTicks = 0;
+		announce(FishFight.tr("battle.reset").withStyle(ChatFormatting.YELLOW));
+		for (int i = 0; i < 2; i++) {
+			BattleFishEntity entity = fighters[i].entity;
+			Vec3 p = startPositions[i];
+			entity.getNavigation().stop();
+			entity.setDeltaMovement(Vec3.ZERO);
+			entity.teleportTo(p.x, p.y, p.z);
+			level.sendParticles(ParticleTypes.POOF, p.x, p.y + 0.5, p.z, 15, 0.3, 0.3, 0.3, 0.05);
+		}
+		playSound(SoundEvents.UI_BUTTON_CLICK.value(), 1.0f, 0.7f);
 	}
 
 	/** 持ち主がいなくなったら不戦敗 */

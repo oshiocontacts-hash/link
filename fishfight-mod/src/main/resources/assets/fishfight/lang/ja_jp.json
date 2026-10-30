@@ -63,6 +63,7 @@
   "fishfight.battle.fight": "ファイト！",
   "fishfight.battle.paralyze": "　%s はしびれてしまった！",
   "fishfight.battle.sprout_arms_title": "%s から腕が生えた！！",
+  "fishfight.battle.reset": "にらみ合いが続いたので仕切り直し！",
   "fishfight.battle.timeout": "時間切れ！ 残りHPの多い方の勝ち！",
   "fishfight.battle.forfeit": "%s の持ち主がいなくなった…（不戦敗）",
   "fishfight.battle.defeated": "%s はひっくり返った…",
