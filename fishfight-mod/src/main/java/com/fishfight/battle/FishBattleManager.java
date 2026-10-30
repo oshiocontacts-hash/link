@@ -199,6 +199,7 @@ public final class FishBattleManager {
 			Vec3 look = challenger.getLookAngle();
 			axis = new Vec3(look.x, 0, look.z);
 		}
+		axis = sideBySide(axis);
 		Vec3 center = new Vec3((pa.x + pb.x) / 2, Math.max(pa.y, pb.y), (pa.z + pb.z) / 2);
 		Fighter fa = new Fighter(a, challenger.getUUID(), FishFight.tr("battle.owned", challenger.getDisplayName(), fishLabel(challenger, a)));
 		Fighter fb = new Fighter(b, target.getUUID(), FishFight.tr("battle.owned", target.getDisplayName(), fishLabel(target, b)));
@@ -246,6 +247,7 @@ public final class FishBattleManager {
 			Vec3 look = player.getLookAngle();
 			axis = new Vec3(look.x, 0, look.z);
 		}
+		axis = sideBySide(axis);
 		Vec3 center = new Vec3((pp.x + mp.x) / 2, pp.y, (pp.z + mp.z) / 2);
 		Fighter fa = new Fighter(mine, player.getUUID(), FishFight.tr("battle.owned", player.getDisplayName(), fishLabel(player, mine)));
 		Fighter fb = new Fighter(wild, null, FishFight.tr("battle.owned", mob.getDisplayName(), wild.displayName()));
@@ -254,7 +256,15 @@ public final class FishBattleManager {
 		BATTLES.add(battle);
 	}
 
-	/** モブごとにそれっぽい魚を出す */
+	/**
+	 * 右クリックできる距離（3ブロックほど）だと、魚が両者の足元に重なって出てしまう。
+	 * 近い時は2人を結ぶ線の横に並べて、魚を横から見られるようにする
+	 */
+	private static Vec3 sideBySide(Vec3 axis) {
+		return axis.length() < 6.0 ? new Vec3(-axis.z, 0, axis.x) : axis;
+	}
+
+		/** モブごとにそれっぽい魚を出す */
 	private static FishSpecies mobFish(Mob mob, RandomSource random) {
 		if (mob instanceof Creeper) {
 			return FishSpecies.PUFFERFISH;
