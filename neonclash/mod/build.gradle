@@ -41,6 +41,8 @@ minecraft {
         client {
             // 録画用の自動デモ：./gradlew :mod:runClient -Pneonclash.demo=true
             property 'neonclash.demo', (project.findProperty('neonclash.demo') ?: 'false').toString()
+            // 録画の fps。ローカルの GPU なら 30（720p になる）。CI のソフトウェア描画は既定の 10 のまま
+            property 'neonclash.demoFps', (project.findProperty('neonclash.demoFps') ?: '10').toString()
         }
 
         server {

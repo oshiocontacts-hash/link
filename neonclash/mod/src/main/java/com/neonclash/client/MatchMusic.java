@@ -74,6 +74,11 @@ public final class MatchMusic {
         return base != null;
     }
 
+    /** 録画用：リズムの層とメロディの層の今の音量。鳴っていなければ 0。 */
+    static float[] levels() {
+        return new float[]{base != null ? base.level() : 0f, drive != null ? drive.level() : 0f};
+    }
+
     private static float duck() {
         NCConfig.Client cfg = NCConfig.CLIENT;
         float v = 1f;
@@ -116,6 +121,11 @@ public final class MatchMusic {
 
         void finish() {
             finishing = true;
+        }
+
+        /** 今の音量（録画の音声を組み立てるため）。 */
+        float level() {
+            return volume;
         }
 
         /** メロディの層は音量 0 から始まることがある。 */

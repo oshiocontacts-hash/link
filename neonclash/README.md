@@ -104,6 +104,16 @@ java -Djava.awt.headless=true -cp core/build/libs/neonclash-core-0.1.0.jar:build
 5. `runGameTestServer` も実行
 6. 動画・ログ・jar を `neonclash-demo-media` ブランチと Artifacts に置く
 
+### 音付きのテスト動画（ローカル）
+
+```bash
+./gradlew :mod:runClient -Pneonclash.demo=true -Pneonclash.demoFps=30
+python tools/sfx/mix_demo.py --fps 30 --out media/neonclash-demo-full.mp4
+```
+
+720p・30fps で録画し、ゲーム内で鳴った音の記録（`run/demo_sounds.jsonl`）から音声を組み立てます。バニラの音（足音など）は入りません。
+動画の見栄えのため、録画中だけ FOV を 100 にし、Husk 1 体に銃を撃たせ、プレイヤーに耐性と再生の効果を付けます。試合のルールや既定値は変えません。
+
 ### BGM（`ci/groove.py`）
 
 numpy + scipy だけで合成するグルーヴ系の曲です（外部音源なし）。
