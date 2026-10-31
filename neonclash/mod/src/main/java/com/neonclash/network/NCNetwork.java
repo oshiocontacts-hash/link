@@ -4,6 +4,7 @@ import com.neonclash.NeonClash;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
@@ -11,7 +12,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class NCNetwork {
-    private static final String PROTOCOL = "1";
+    private static final String PROTOCOL = "2";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             NeonClash.id("main"), () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
 
@@ -38,6 +39,9 @@ public final class NCNetwork {
         CHANNEL.messageBuilder(S2CUpgradeOfferPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(S2CUpgradeOfferPacket::encode).decoder(S2CUpgradeOfferPacket::decode)
                 .consumerMainThread(S2CUpgradeOfferPacket::handle).add();
+        CHANNEL.messageBuilder(S2CBeamPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(S2CBeamPacket::encode).decoder(S2CBeamPacket::decode)
+                .consumerMainThread(S2CBeamPacket::handle).add();
     }
 
     /** 実プレイヤーにだけ送る（モブ・FakePlayer は無視）。 */
@@ -49,6 +53,11 @@ public final class NCNetwork {
 
     public static void sendToLevel(ServerLevel level, Object msg) {
         CHANNEL.send(PacketDistributor.DIMENSION.with(level::dimension), msg);
+    }
+
+    /** pos から radius 以内のプレイヤーに送る。 */
+    public static void sendNear(ServerLevel level, Vec3 pos, double radius, Object msg) {
+        CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(pos.x, pos.y, pos.z, radius, level.dimension())), msg);
     }
 
     public static void sendToAll(Object msg) {

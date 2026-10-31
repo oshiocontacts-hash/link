@@ -2,6 +2,10 @@
 
 実行日: 2026-10-30 / 実行環境: Linux（クラウド VM）、OpenJDK 17.0.20、Gradle 8.8（wrapper）
 
+## 追記（2026-10-31・Windows 11 / Temurin 17.0.20.1 のローカル環境）
+
+Forge / Mojang / Modrinth に直接届く環境で `./gradlew build` と `:mod:runGameTestServer` を実行。ユニットテスト 121 件（`BeamTrailTest` 8 件を追加）、GameTest 8 件（`gunBeamStopsAtTheTarget` を追加）すべて成功。`:mod:runClient -Pneonclash.demo=true` も Intel Iris Xe の実 GPU で最後まで動き、mod 由来のエラーなし。ビームの描画はこの録画のフレームで確認した。
+
 ## まとめ
 
 開発 VM からは Forge / Mojang / CurseForge に届かないため、実機の確認は **GitHub Actions**（`.github/workflows/neonclash-demo.yml`）で行った。

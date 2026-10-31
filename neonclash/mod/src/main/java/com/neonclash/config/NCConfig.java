@@ -98,6 +98,10 @@ public final class NCConfig {
         public final IntValue lastStandSlowTicks;
         public final DoubleValue lastStandHealth;
         public final DoubleValue slowMoClientStrength;
+        // beam
+        public final BooleanValue beamEnabled;
+        public final DoubleValue beamMaxLength;
+        public final DoubleValue beamViewDistance;
         // parry
         public final IntValue parryWindowTicks;
         public final IntValue parryCooldownTicks;
@@ -207,6 +211,12 @@ public final class NCConfig {
             lastStandSlowTicks = b.comment("ラストスタンドのスロー時間（30=1.5秒）").defineInRange("lastStandTicks", 30, 0, 600);
             lastStandHealth = b.comment("ラストスタンドで踏みとどまった後の体力").defineInRange("lastStandHealth", 2.0, 0.5, 40.0);
             slowMoClientStrength = b.comment("クライアント演出（彩度・音程・FOV）の強さ 0..1").defineInRange("clientStrength", 1.0, 0.0, 1.0);
+            b.pop();
+
+            b.comment("弾の軌道に残るビーム（色はチームカラー）。太さや濃さは CLIENT の visual").push("beam");
+            beamEnabled = b.define("enabled", true);
+            beamMaxLength = b.comment("1 発のビームを追う最大距離（ブロック）").defineInRange("maxLength", 96.0, 1.0, 512.0);
+            beamViewDistance = b.comment("ビームを送るプレイヤーまでの距離").defineInRange("viewDistance", 96.0, 8.0, 512.0);
             b.pop();
 
             b.comment("パリィ").push("parry");
@@ -389,6 +399,20 @@ public final class NCConfig {
         public final IntValue flashTicks;
         public final DoubleValue beatClickVolume;
         public final IntValue beatAccentEvery;
+        public final BooleanValue beamEnabled;
+        public final IntValue beamFadeTicks;
+        public final IntValue beamMaxSegments;
+        public final DoubleValue beamGlowWidth;
+        public final DoubleValue beamCoreWidth;
+        public final DoubleValue beamGlowAlpha;
+        public final DoubleValue beamCoreAlpha;
+        public final DoubleValue beamCoreWhiten;
+        public final DoubleValue beamNearFade;
+        public final DoubleValue beamTaperDistance;
+        public final DoubleValue beamSubdivide;
+        public final DoubleValue beamMuzzleRight;
+        public final DoubleValue beamMuzzleDown;
+        public final DoubleValue beamMuzzleDecay;
 
         Client(ForgeConfigSpec.Builder b) {
             b.comment("見た目・演出（各プレイヤーが調整）").push("visual");
@@ -410,6 +434,20 @@ public final class NCConfig {
             flashTicks = b.comment("ビート・パリィ成功などのフラッシュの長さ").defineInRange("flashTicks", 6, 0, 40);
             beatClickVolume = b.comment("試合中に拍で鳴るクリック音の音量（0 で無音）").defineInRange("beatClickVolume", 0.25, 0.0, 1.0);
             beatAccentEvery = b.comment("何拍ごとにアクセントを付けるか").defineInRange("beatAccentEvery", 4, 1, 16);
+            beamEnabled = b.comment("弾の軌道にビームを残す").define("beamEnabled", true);
+            beamFadeTicks = b.comment("ビームが消えるまで（16=0.8秒）").defineInRange("beamFadeTicks", 16, 1, 200);
+            beamMaxSegments = b.comment("同時に描く区間の上限").defineInRange("beamMaxSegments", 1024, 16, 16384);
+            beamGlowWidth = b.comment("にじみの太さ（ブロック）").defineInRange("beamGlowWidth", 0.32, 0.0, 4.0);
+            beamCoreWidth = b.comment("芯の太さ（ブロック）").defineInRange("beamCoreWidth", 0.07, 0.0, 4.0);
+            beamGlowAlpha = b.comment("にじみの濃さ").defineInRange("beamGlowAlpha", 0.45, 0.0, 1.0);
+            beamCoreAlpha = b.comment("芯の濃さ").defineInRange("beamCoreAlpha", 0.85, 0.0, 1.0);
+            beamCoreWhiten = b.comment("芯をどれだけ白に寄せるか（0=チーム色のまま）").defineInRange("beamCoreWhiten", 0.55, 0.0, 1.0);
+            beamNearFade = b.comment("カメラからこの距離より近い所を薄くする").defineInRange("beamNearFade", 0.8, 0.0, 16.0);
+            beamTaperDistance = b.comment("カメラからこの距離より近い所を細くする").defineInRange("beamTaperDistance", 5.0, 0.0, 64.0);
+            beamSubdivide = b.comment("描画の分割の長さ（ブロック）").defineInRange("beamSubdivide", 1.0, 0.1, 16.0);
+            beamMuzzleRight = b.comment("一人称で自分のビームの根元を右へずらす量").defineInRange("beamMuzzleRight", 0.05, -2.0, 2.0);
+            beamMuzzleDown = b.comment("一人称で自分のビームの根元を下へずらす量").defineInRange("beamMuzzleDown", 0.14, -2.0, 2.0);
+            beamMuzzleDecay = b.comment("根元のずらしが 0 になる距離").defineInRange("beamMuzzleDecay", 10.0, 0.0, 64.0);
             b.pop();
         }
     }

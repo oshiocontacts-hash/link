@@ -1,6 +1,7 @@
 package com.neonclash.gametest;
 
 import com.neonclash.NeonClash;
+import com.neonclash.compat.BeamService;
 import com.neonclash.compat.TaczBridge;
 import com.neonclash.config.NCConfig;
 import com.neonclash.core.round.RoundEngine;
@@ -258,6 +259,36 @@ public final class NCGameTests {
             }
             h.assertTrue(tc.gunHitsTaken > 0, "TaCZ の命中イベントがこの mod の処理を通るのを待っている");
             h.assertTrue(target.getHealth() < target.getMaxHealth(), "ダメージが入っている");
+        });
+    }
+
+    // ------------------------------------------------------------------ ビーム
+
+    @GameTest(template = ARENA, batch = "neonclash_beam")
+    public static void gunBeamStopsAtTheTarget(GameTestHelper h) {
+        Husk shooter = dummy(h, 1.5, 2, 4.5, -90f);
+        Husk target = dummy(h, 6.5, 2, 4.5, 90f);
+        shooter.setItemInHand(InteractionHand.MAIN_HAND, TaczBridge.makeGun(NCConfig.SERVER.handgunId.get(), 17));
+        Combatants.getOrCreate(shooter);
+        Combatant tc = Combatants.getOrCreate(target);
+        long before = BeamService.segmentsSent();
+
+        IGunOperator op = IGunOperator.fromLivingEntity(shooter);
+        op.initialData();
+        op.draw(shooter::getMainHandItem);
+        double dx = target.getX() - shooter.getX();
+        double dy = shooter.getEyeY() - (target.getY() + target.getBbHeight() * 0.5);
+        float pitch = (float) Math.toDegrees(Math.atan2(dy, dx));
+
+        h.succeedWhen(() -> {
+            if (tc.gunHitsTaken == 0) {
+                op.shoot(() -> pitch, () -> -90f);
+            }
+            h.assertTrue(tc.gunHitsTaken > 0, "命中を待っている");
+            h.assertTrue(BeamService.segmentsSent() > before, "弾の区間が送られている");
+            Vec3 end = BeamService.lastEnd();
+            h.assertTrue(end != null && end.distanceTo(target.position().add(0, target.getBbHeight() * 0.5, 0)) < 1.5,
+                    "ビームが相手の位置で止まる: " + end);
         });
     }
 }

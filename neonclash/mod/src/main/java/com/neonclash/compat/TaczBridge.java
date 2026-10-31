@@ -94,6 +94,7 @@ public final class TaczBridge {
     @SubscribeEvent
     public static void onBulletSpawn(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide() || !(event.getEntity() instanceof EntityKineticBullet bullet)) return;
+        BeamService.track(bullet);
         Combatant c = Combatants.get(bullet.getOwner());
         if (c != null && c.lastOnBeatFireTick == event.getLevel().getGameTime()) {
             bullet.getPersistentData().putBoolean(TAG_BEAT, true);
@@ -104,6 +105,9 @@ public final class TaczBridge {
     @SubscribeEvent
     public static void onHurtPre(EntityHurtByGunEvent.Pre event) {
         if (event.getLogicalSide() != LogicalSide.SERVER) return;
+        if (event.getHurtEntity() instanceof LivingEntity victim) {
+            BeamService.onHit(event.getBullet(), victim);
+        }
         Combatant ac = Combatants.get(event.getAttacker());
         if (ac == null) return;
         double mult = ac.upgrades.increaseMultiplier(UpgradeStat.GUN_DAMAGE);
@@ -130,7 +134,7 @@ public final class TaczBridge {
             }
             SwordService.interrupt(vc);
         }
-        HitFeedback.hit(attacker, victim, hitPos(event.getBullet(), victim));
+        HitFeedback.hit(attacker, victim, victim.position().add(0, victim.getBbHeight() * 0.6, 0));
     }
 
     /** 命中して死んだ（試合外）。キル演出・報酬は LivingDeathEvent 側で共通処理済みなので数えるだけ。 */
@@ -151,9 +155,5 @@ public final class TaczBridge {
         int color = c != null ? c.teamColor() : NCConfig.parseColor(NCConfig.SERVER.neutralColor.get(), 0xF8F32B);
         Vec3 at = event.getHitResult().getLocation();
         HitFeedback.burst(level, at, color, Math.max(1, NCConfig.SERVER.hitParticleCount.get() / 2));
-    }
-
-    private static Vec3 hitPos(@Nullable Entity bullet, LivingEntity victim) {
-        return bullet != null ? bullet.position() : victim.position().add(0, victim.getBbHeight() * 0.6, 0);
     }
 }

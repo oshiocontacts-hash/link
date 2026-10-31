@@ -41,3 +41,5 @@
 | 18 | `blink.exitVelocity` | 0.35 | ワープ後に滑る感覚が気持ちいいか、制御を失うか | 0.2〜0.5 |
 | 19 | CLIENT: `crosshairPulseScale` / `crosshairPulseTicks` | 0.6 / 4 | 拍が見えるが邪魔ではないか | |
 | 20 | CLIENT: `slowMoFovMultiplier` / `slowMoSoundPitch` | 0.85 / 0.6 | スロー演出が「効いてる」感じがするか、酔わないか | |
+| 21 | CLIENT: `beamFadeTicks` / `beamGlowWidth` / `beamGlowAlpha` | 16 / 0.32 / 0.45 | ビームが残る長さと濃さ。撃ち合いで相手が見えなくならないか | 10〜30。2v2 以上で画面がうるさければ短く |
+| 22 | `style.points.on_beat` | 10 | 空撃ちでもビートに合わせれば加点される。狙って合わせるとランクが上がりすぎないか | 下げるなら 3〜5。命中時だけ加点にするのは別の修正 |

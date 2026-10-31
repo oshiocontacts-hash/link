@@ -4,7 +4,7 @@
 1 ラウンド 90 秒、3 本先取。ハンドガン（TaCZ）と一撃必殺の剣、ブリンク、パリィ、切り札で戦います。
 
 > **現状**: 開発環境からは Forge Maven・Mojang・CurseForge に届かないため、実機のビルド・GameTest・起動と録画は GitHub Actions で行っています。
-> ビルド成功、ユニットテスト 113 件・GameTest 7 件すべて成功、Xvfb 上の `runClient` で 3 ラウンドの試合を自動プレイして録画済み
+> ビルド成功、ユニットテスト 121 件・GameTest 8 件すべて成功、Xvfb 上の `runClient` で 3 ラウンドの試合を自動プレイして録画済み
 > （`neonclash-demo-media` ブランチ）。詳細は [テストレポート](docs/TEST_REPORT.md) と下の「判断ログ」を参照してください。
 
 ## 遊び方
@@ -29,6 +29,7 @@
 - スタイルランク D→C→B→A→S：空中キル・ブリンク直後のキル・剣キル・ビート・パリィで上昇、被弾・死亡で下降。
   ラウンド終了時のランクが高いほど強化の選択肢のレア度が上がります。
 - TaCZ の銃はハンドガン以外も持ち込めます（溜め潰しは TaCZ の銃全般の命中で発生）。
+- 弾の軌道にはチームカラーの半透明ビームが残り、根元から順に消えていきます。
 
 ## コマンド
 
@@ -55,13 +56,14 @@
 | `feel` | `hitStopTicks`(3) `hitShakeDegrees`(0.8) `killShakeDegrees`(2.0) `shakeTicks`(5) 命中/キル音の音量・ピッチ、`killPitchStep`(0.15) `killMaxPitch`(2.0) `killStreakWindowTicks`(160) パーティクル数・大きさ |
 | `killReward` | `heal`(6.0) `speedTicks`(40) `speedAmplifier`(1) |
 | `slow` | `globalFactor`(0.3) `globalTicks`(10) `parryTargetFactor`(0.4) `parryTargetTicks`(30) `parryZoneRadius`(3.5) `parryZoneFactor`(0.35) `parryZoneTicks`(30) `lastStandFactor`(0.5) `lastStandTicks`(30) `lastStandHealth`(2.0) `clientStrength`(1.0) |
+| `beam` | `enabled`(true) `maxLength`(96) `viewDistance`(96) |
 | `parry` | `windowTicks`(6) `cooldownTicks`(100) `successCooldownMultiplier`(0.5) |
 | `beat` | `enabled`(true) `bpm`(128) `toleranceMs`(60) `damageBonus`(0.2) `cooldownMultiplier`(0.6) `maxLatencyCompensationMs`(150) `resyncSeconds`(10) |
 | `style` | `thresholds`([60,160,300,480]) `maxPoints`(1000) `points.*`（kill 60 / air_kill 60 / blink_kill 70 / sword_kill 90 / on_beat 10 / parry 40 / damage_taken -15 / death -60） |
 | `round` | `roundSeconds`(90) `shrinkStartSeconds`(60) `intermissionSeconds`(5) `winsToWin`(3) `maxRounds`(9) `min/maxPlayersPerTeam`(1/4) `arenaRadius`(28) `arenaEndRadius`(8) `spawnOffset`(12) `outsideDamagePerSecond`(3) `handgunId`("tacz:glock_17") `handgunAmmo`(17) `spareAmmoId`("tacz:9mm") `spareAmmo`(68) `friendlyFire`(false) `hudSyncInterval`(2) |
 | `upgrades` | `choices`(3) `distinctCategories`(true) `reductionFloor`(0.25) `pool`（`id\|CATEGORY\|RARITY\|STAT\|value\|stackable` の文字列リスト） `rarityWeights.D..S`（[COMMON,RARE,EPIC,LEGENDARY] の重み） |
 | `colors` | `red`(#FF2E63) `blue`(#00E5FF) `neutral`(#F8F32B) |
-| CLIENT `visual` | `cameraShakeScale` `slowMoDesaturate` `slowMoFovMultiplier`(0.85) `slowMoSoundPitch`(0.6) `slowMoFadeTicks` `crosshairPulseScale` `crosshairBaseSize` `crosshairPulseTicks` `hudScale` `rankPopTicks` `rankPopScale` `showBeat` `beatClickVolume` `beatAccentEvery` `hitMarkerTicks` `killMarkerTicks` `flashTicks` `hitStopInputFreeze` |
+| CLIENT `visual` | `cameraShakeScale` `slowMoDesaturate` `slowMoFovMultiplier`(0.85) `slowMoSoundPitch`(0.6) `slowMoFadeTicks` `crosshairPulseScale` `crosshairBaseSize` `crosshairPulseTicks` `hudScale` `rankPopTicks` `rankPopScale` `showBeat` `beatClickVolume` `beatAccentEvery` `hitMarkerTicks` `killMarkerTicks` `flashTicks` `hitStopInputFreeze`、ビーム：`beamEnabled` `beamFadeTicks`(16) `beamGlowWidth`(0.32) `beamCoreWidth`(0.07) `beamGlowAlpha`(0.45) `beamCoreAlpha`(0.85) `beamCoreWhiten`(0.55) `beamNearFade`(0.8) `beamTaperDistance`(5) `beamMuzzleRight`(0.05) `beamMuzzleDown`(0.14) `beamMuzzleDecay`(10) `beamSubdivide`(1) `beamMaxSegments`(1024) |
 
 効果音はバニラの音を `assets/neonclash/sounds.json` で参照しているだけなので、リソースパックで差し替えられます。
 スロー時の彩度は `assets/neonclash/shaders/post/slowmo.json` の `Saturation`（0.25）です。
@@ -185,3 +187,13 @@ python3 ci/groove.py --duration 90 --beat-json run/demo_beat.json --out bgm.wav 
     **ただし数値だけでは根本解決ではない。** 1 ライフ 1 回の自動発動は変わらない（キルより発動が多いのも同じ）し、剣の一撃も 1 回は耐える。スローを完全に消しても 21% が下限。満足できなければ発動条件のルール変更が必要。
 29. **スタイルは `damage_taken` -50 → -15、`death` -200 → -60、`thresholds` を 60/160/300/480 に。** `damage_taken` だけでは D のままが 81% → 68%。死亡 -200 がキル 3 回分を消すのが主因だったので死亡も緩め、試合が 3〜5 ラウンドで終わることに合わせてしきい値も下げた。強化抽選時のランクは D 81% → 48%、C 27%・B 18%・A 6%。
 30. 既定値の変更は既存のワールドには反映されない。`serverconfig/neonclash-server.toml` が残っているワールドは古い値のままなので、新しいワールドで試すか、その toml を消すこと。
+
+**軌道のビーム**
+
+31. 銃の軌道をチーム色の半透明ビームとして残す。TaCZ の曳光（`getTracerColorOverride`）は曳光弾にしか効かず、太さも足りないので使わず、自前で描く。
+    弾の位置はサーバーの値を tick ごとに `S2CBeamPacket` で送る。クライアント側の弾は当たり判定を持たず 1 tick 分めり込むのと、範囲スローの速度変更が届かない（テストレポートの既知の問題 4）ので、見た目と当たりをずらさないため。
+32. 弾は命中した tick の最後にもう 1 tick 分進むので、そのまま描くと壁や相手を突き抜けて見える。相手に当たった点は `EntityHurtByGunEvent.Pre` で覚え、壁はレイキャストで手前に切る。
+33. 色はサーバーのチームカラー（`colors`）。試合外の弾は `neutral`。TaCZ の銃すべて（Husk など mod の参加者以外が撃った弾も含む）が対象。
+34. 一人称では弾が目の位置から出るので、根元を銃口の方へずらし（`beamMuzzle*`）、カメラ近くは細く薄くする（`beamTaperDistance` / `beamNearFade`）。腰だめの位置に合わせた値なので、エイム中は根元が少し下にずれる。
+35. 銃本体のモデルは TaCZ のままで、変えたのは軌道だけ。
+36. 命中パーティクルの位置を弾の座標から相手の体に変更。Pre/Post の時点の弾の座標は tick 開始時のもので、近距離では撃った人の目の前になり、大きなパーティクルが画面を塞いでいた。

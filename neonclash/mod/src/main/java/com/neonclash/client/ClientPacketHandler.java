@@ -3,6 +3,7 @@ package com.neonclash.client;
 import com.neonclash.config.NCConfig;
 import com.neonclash.core.style.StyleRank;
 import com.neonclash.game.MovementHandler;
+import com.neonclash.network.S2CBeamPacket;
 import com.neonclash.network.S2CBeatPacket;
 import com.neonclash.network.S2CFeedbackPacket;
 import com.neonclash.network.S2CHudPacket;
@@ -62,6 +63,10 @@ public final class ClientPacketHandler {
         ClientState.slowMoTicks = ClientState.slowMoTotal = Math.max(ClientState.slowMoTicks, p.ticks());
         ClientState.slowMoStrength = p.strength();
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(NCSounds.SLOWMO.get(), 1.0f, 0.8f));
+    }
+
+    public static void onBeam(S2CBeamPacket p) {
+        BeamRenderer.add(p);
     }
 
     public static void onHud(S2CHudPacket p) {

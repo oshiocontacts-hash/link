@@ -42,6 +42,7 @@ public final class ClientEvents {
         attackHeldLastTick = mc.options.keyAttack.isDown();
         if (mc.player == null) return;
         ClientState.tick();
+        BeamRenderer.tick();
         while (NCKeys.BLINK.consumeClick()) {
             NCNetwork.sendToServer(new C2SActionPacket(C2SActionPacket.Action.BLINK, 0));
         }
@@ -153,6 +154,7 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientState.reset();
+        BeamRenderer.clear();
         SlowMoShader.close();
     }
 }
