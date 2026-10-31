@@ -8,11 +8,14 @@ import com.neonclash.core.upgrade.UpgradeStat;
 import com.neonclash.game.BeatService;
 import com.neonclash.game.Combatant;
 import com.neonclash.game.Combatants;
+import com.neonclash.game.FxService;
 import com.neonclash.game.HitFeedback;
 import com.neonclash.game.StyleService;
 import com.neonclash.game.SwordService;
 import com.neonclash.network.NCNetwork;
 import com.neonclash.network.S2CFeedbackPacket;
+import com.neonclash.network.S2CFxPacket;
+import com.neonclash.registry.NCSounds;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.event.common.EntityHurtByGunEvent;
 import com.tacz.guns.api.event.common.EntityKillByGunEvent;
@@ -23,6 +26,7 @@ import com.tacz.guns.api.item.builder.GunItemBuilder;
 import com.tacz.guns.entity.EntityKineticBullet;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -94,10 +98,21 @@ public final class TaczBridge {
     @SubscribeEvent
     public static void onBulletSpawn(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide() || !(event.getEntity() instanceof EntityKineticBullet bullet)) return;
-        BeamService.track(bullet);
         Combatant c = Combatants.get(bullet.getOwner());
-        if (c != null && c.lastOnBeatFireTick == event.getLevel().getGameTime()) {
+        long now = event.getLevel().getGameTime();
+        boolean beat = c != null && c.lastOnBeatFireTick == now;
+        if (beat) {
             bullet.getPersistentData().putBoolean(TAG_BEAT, true);
+        }
+        BeamService.track(bullet, beat);
+        // 散弾でも 1 回の発射につき 1 回だけ。GunFireEvent は弾切れでも来るので、ここ（本当に弾が出た）で鳴らす
+        if (c != null && c.lastShotFxTick != now && event.getLevel() instanceof ServerLevel level) {
+            c.lastShotFxTick = now;
+            LivingEntity shooter = c.entity();
+            FxService.muzzle(level, shooter, bullet.getDeltaMovement().normalize(), c.teamColor(), beat);
+            float pitch = 1f + (level.random.nextFloat() - 0.5f) * NCConfig.SERVER.shotPitchVariance.get().floatValue();
+            level.playSound(null, shooter.getX(), shooter.getEyeY(), shooter.getZ(), beat ? NCSounds.SHOT_BEAT.get() : NCSounds.SHOT.get(),
+                    SoundSource.PLAYERS, NCConfig.SERVER.shotSoundVolume.get().floatValue(), pitch);
         }
     }
 
@@ -107,6 +122,12 @@ public final class TaczBridge {
         if (event.getLogicalSide() != LogicalSide.SERVER) return;
         if (event.getHurtEntity() instanceof LivingEntity victim) {
             BeamService.onHit(event.getBullet(), victim);
+            Combatant vc = Combatants.get(victim);
+            if (vc != null) {
+                // 倒した場合、Post より先に CombatEvents の死亡処理が走るので、ここで向きを覚えておく
+                vc.lastHitDir = HitFeedback.direction(event.getAttacker(), victim, event.getBullet());
+                vc.lastHitTick = victim.level().getGameTime();
+            }
         }
         Combatant ac = Combatants.get(event.getAttacker());
         if (ac == null) return;
@@ -127,6 +148,11 @@ public final class TaczBridge {
         Combatant vc = Combatants.get(victim);
         Combatant ac = Combatants.get(attacker);
         if (ac != null) ac.gunHitsDealt++;
+        int flags = flags(event);
+        Vec3 at = victim.position().add(0, victim.getBbHeight() * 0.6, 0);
+        if (attacker != null) {
+            FxService.damageNumber(attacker, at, event.getAmount(), HitFeedback.colorOf(attacker), flags);
+        }
         if (vc != null) {
             vc.gunHitsTaken++;
             if (vc.eliminated) {
@@ -134,7 +160,15 @@ public final class TaczBridge {
             }
             SwordService.interrupt(vc);
         }
-        HitFeedback.hit(attacker, victim, victim.position().add(0, victim.getBbHeight() * 0.6, 0));
+        HitFeedback.hit(attacker, victim, at, HitFeedback.direction(attacker, victim, event.getBullet()), flags);
+    }
+
+    private static int flags(EntityHurtByGunEvent event) {
+        int flags = event.isHeadShot() ? S2CFxPacket.HEAD : 0;
+        if (event.getBullet() != null && event.getBullet().getPersistentData().getBoolean(TAG_BEAT)) {
+            flags |= S2CFxPacket.BEAT;
+        }
+        return flags;
     }
 
     /** 命中して死んだ（試合外）。キル演出・報酬は LivingDeathEvent 側で共通処理済みなので数えるだけ。 */
@@ -154,6 +188,8 @@ public final class TaczBridge {
         Combatant c = Combatants.get(event.getAmmo().getOwner());
         int color = c != null ? c.teamColor() : NCConfig.parseColor(NCConfig.SERVER.neutralColor.get(), 0xF8F32B);
         Vec3 at = event.getHitResult().getLocation();
-        HitFeedback.burst(level, at, color, Math.max(1, NCConfig.SERVER.hitParticleCount.get() / 2));
+        HitFeedback.burst(level, at, color, NCConfig.SERVER.hitParticleCount.get() / 2);
+        FxService.impact(level, at, Vec3.atLowerCornerOf(event.getHitResult().getDirection().getNormal()), color);
+        level.playSound(null, at.x, at.y, at.z, NCSounds.IMPACT.get(), SoundSource.PLAYERS, NCSounds.IMPACT_VOLUME, 1f + (level.random.nextFloat() - 0.5f) * 0.3f);
     }
 }

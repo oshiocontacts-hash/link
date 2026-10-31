@@ -51,7 +51,7 @@ public final class BeamRenderer {
             from = towardMuzzle(from, off, eye);
             to = towardMuzzle(to, off, eye);
         }
-        TRAIL.add(from, to, p.color(), settings());
+        TRAIL.add(from, to, p.color(), p.beat(), settings());
     }
 
     private static Vec3d towardMuzzle(Vec3d p, Vec3 off, Vec3d eye) {
@@ -82,10 +82,11 @@ public final class BeamRenderer {
             double step = NCConfig.CLIENT.beamSubdivide.get();
             int pieces = (int) Math.max(1, Math.min(MAX_PIECES, Math.ceil(s.from().distanceTo(s.to()) / step)));
             Vec3d dir = s.to().subtract(s.from()).normalize();
+            float boost = s.boosted() ? NCConfig.CLIENT.beamBeatWidth.get().floatValue() : 1f;
             Station a = station(s, dir, 0, camera, partial);
             for (int i = 1; i <= pieces; i++) {
                 Station b = station(s, dir, (float) i / pieces, camera, partial);
-                piece(buf, pose, s.color(), a, b, camera);
+                piece(buf, pose, s.color(), boost, a, b, camera);
                 a = b;
             }
         }
@@ -123,13 +124,13 @@ public final class BeamRenderer {
     }
 
     /** チーム色のにじみと、白に寄せた芯を重ねる。 */
-    private static void piece(BufferBuilder buf, Matrix4f pose, int color, Station a, Station b, Vec3d camera) {
+    private static void piece(BufferBuilder buf, Matrix4f pose, int color, float boost, Station a, Station b, Vec3d camera) {
         NCConfig.Client cfg = NCConfig.CLIENT;
         float r = (color >> 16 & 0xFF) / 255f, g = (color >> 8 & 0xFF) / 255f, bl = (color & 0xFF) / 255f;
         float glow = cfg.beamGlowAlpha.get().floatValue(), core = cfg.beamCoreAlpha.get().floatValue();
         float w = cfg.beamCoreWhiten.get().floatValue();
-        ribbon(buf, pose, a, b, camera, cfg.beamGlowWidth.get().floatValue() * 0.5f, r, g, bl, glow);
-        ribbon(buf, pose, a, b, camera, cfg.beamCoreWidth.get().floatValue() * 0.5f, r + (1 - r) * w, g + (1 - g) * w, bl + (1 - bl) * w, core);
+        ribbon(buf, pose, a, b, camera, cfg.beamGlowWidth.get().floatValue() * 0.5f * boost, r, g, bl, glow);
+        ribbon(buf, pose, a, b, camera, cfg.beamCoreWidth.get().floatValue() * 0.5f * boost, r + (1 - r) * w, g + (1 - g) * w, bl + (1 - bl) * w, core);
     }
 
     /** 中心線で濃く、両端で透明になる帯（左右 2 枚）。 */

@@ -10,6 +10,7 @@ import com.neonclash.core.upgrade.UpgradeDef;
 import com.neonclash.game.BlinkService;
 import com.neonclash.game.Combatant;
 import com.neonclash.game.Combatants;
+import com.neonclash.game.HitFeedback;
 import com.neonclash.game.SlowService;
 import com.neonclash.game.SwordService;
 import com.neonclash.match.MatchController;
@@ -263,6 +264,61 @@ public final class NCGameTests {
     }
 
     // ------------------------------------------------------------------ ビーム
+
+    /** ヒットストップがノックバックの速度を消さないこと。NoAi のモブは速度が減らないので、そのまま確かめられる。 */
+    @GameTest(template = ARENA, batch = "neonclash_knockback")
+    public static void gunHitKnocksTargetBack(GameTestHelper h) {
+        Husk shooter = dummy(h, 1.5, 2, 4.5, -90f);
+        Husk target = dummy(h, 6.5, 2, 4.5, 90f);
+        shooter.setItemInHand(InteractionHand.MAIN_HAND, TaczBridge.makeGun(NCConfig.SERVER.handgunId.get(), 17));
+        Combatants.getOrCreate(shooter);
+        Combatant tc = Combatants.getOrCreate(target);
+        IGunOperator op = IGunOperator.fromLivingEntity(shooter);
+        op.initialData();
+        op.draw(shooter::getMainHandItem);
+        double dx = target.getX() - shooter.getX();
+        double dy = shooter.getEyeY() - (target.getY() + target.getBbHeight() * 0.5);
+        float pitch = (float) Math.toDegrees(Math.atan2(dy, dx));
+
+        h.succeedWhen(() -> {
+            if (tc.gunHitsTaken == 0) {
+                op.shoot(() -> pitch, () -> -90f);
+            }
+            h.assertTrue(tc.gunHitsTaken > 0, "命中を待っている");
+            h.assertTrue(target.getDeltaMovement().x >= NCConfig.SERVER.gunKnockback.get() * 0.9,
+                    "弾の向きへ押される: " + target.getDeltaMovement());
+            h.assertTrue(target.getDeltaMovement().y > 0, "少し浮く: " + target.getDeltaMovement());
+        });
+    }
+
+    /** AI のあるモブは速度が毎 tick 減るので、実際に動いた距離を見る。 */
+    @GameTest(template = ARENA, batch = "neonclash_knockback")
+    public static void knockbackMovesAnAiMob(GameTestHelper h) {
+        Husk e = dummy(h, 2.5, 2, 4.5, 0f);
+        e.setNoAi(false);
+        double start = e.getX();
+        Combatant c = Combatants.getOrCreate(e);
+        c.hitStopTicks = 3; // ヒットストップ中でも動く
+        HitFeedback.knockback(e, new Vec3(1, 0, 0), NCConfig.SERVER.gunKnockback.get(), NCConfig.SERVER.gunKnockbackLift.get());
+        h.runAfterDelay(10, () -> {
+            h.assertTrue(e.getX() - start > 0.6, "押された距離: " + (e.getX() - start));
+            h.succeed();
+        });
+    }
+
+    @GameTest(template = ARENA, batch = "neonclash_knockback")
+    public static void knockbackRespectsResistanceAndLimit(GameTestHelper h) {
+        Husk e = dummy(h, 4.5, 2, 4.5, 0f);
+        HitFeedback.knockback(e, new Vec3(5, 0, 0), 9.0, 0.0);
+        h.assertTrue(Math.abs(e.getDeltaMovement().x - NCConfig.SERVER.knockbackMaxSpeed.get()) < 1.0e-6, "上限で止まる: " + e.getDeltaMovement());
+
+        IronGolem golem = h.spawn(EntityType.IRON_GOLEM, new Vec3(2.5, 2, 2.5)); // ノックバック耐性 1.0
+        golem.setNoAi(true);
+        Vec3 before = golem.getDeltaMovement();
+        HitFeedback.knockback(golem, new Vec3(1, 0, 0), 1.0, 0.5);
+        h.assertTrue(golem.getDeltaMovement().subtract(before).horizontalDistance() < 1.0e-6, "耐性 1 のゴーレムは押されない");
+        h.succeed();
+    }
 
     @GameTest(template = ARENA, batch = "neonclash_beam")
     public static void gunBeamStopsAtTheTarget(GameTestHelper h) {

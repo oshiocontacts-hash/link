@@ -44,6 +44,9 @@ public final class SwordService {
             return false;
         }
         e.level().playSound(null, e.getX(), e.getY(), e.getZ(), NCSounds.WINDUP.get(), SoundSource.PLAYERS, 0.7f, 1.0f);
+        if (e.level() instanceof ServerLevel level) {
+            FxService.windup(level, e, c.teamColor(), windup);
+        }
         NCNetwork.send(e, new S2CFeedbackPacket(S2CFeedbackPacket.Kind.WINDUP, 0, windup, 0));
         return true;
     }
@@ -80,7 +83,7 @@ public final class SwordService {
         e.setDeltaMovement(e.getDeltaMovement().add(look.x * cfg.swordLungeVelocity.get(), 0, look.z * cfg.swordLungeVelocity.get()));
         e.hurtMarked = true;
         level.playSound(null, e.getX(), e.getY(), e.getZ(), NCSounds.SLASH.get(), SoundSource.PLAYERS, 1.0f, 1.0f);
-        HitFeedback.slashArc(level, eye, look, range, c.teamColor());
+        FxService.slash(level, eye, look, range, c.teamColor());
 
         LivingEntity target = level.getEntitiesOfClass(LivingEntity.class, e.getBoundingBox().inflate(range + 1.0),
                         t -> t != e && t.isAlive() && !t.isSpectator() && isEnemy(c, t))
@@ -95,6 +98,12 @@ public final class SwordService {
                 .orElse(null);
         if (target != null) {
             bladeKill(e, target);
+            level.playSound(null, target.getX(), target.getY(), target.getZ(), NCSounds.SLASH_HIT.get(), SoundSource.PLAYERS, 1.2f, 1.0f);
+            // ラストスタンドで耐えた相手は大きく吹き飛ぶ
+            Combatant tc = Combatants.get(target);
+            if (target.isAlive() && (tc == null || !tc.eliminated)) {
+                HitFeedback.knockback(target, target.position().subtract(e.position()), cfg.swordKnockback.get(), cfg.swordKnockbackLift.get());
+            }
         }
         return target;
     }
@@ -108,7 +117,7 @@ public final class SwordService {
         return Math.max(lo, Math.min(hi, v));
     }
 
-    private static boolean isEnemy(Combatant c, LivingEntity t) {
+    static boolean isEnemy(Combatant c, LivingEntity t) {
         Combatant other = Combatants.get(t);
         if (other != null && other.eliminated) {
             return false;

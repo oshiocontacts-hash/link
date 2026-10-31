@@ -29,12 +29,14 @@ public final class BeamTrail {
         private final Vec3d from;
         private final Vec3d to;
         private final int color;
+        private final boolean boosted;
         private int age;
 
-        Segment(Vec3d from, Vec3d to, int color) {
+        Segment(Vec3d from, Vec3d to, int color, boolean boosted) {
             this.from = from;
             this.to = to;
             this.color = color;
+            this.boosted = boosted;
         }
 
         public Vec3d from() {
@@ -50,6 +52,11 @@ public final class BeamTrail {
             return color;
         }
 
+        /** ビートに乗った射撃の区間（太く描く）。 */
+        public boolean boosted() {
+            return boosted;
+        }
+
         public int age() {
             return age;
         }
@@ -58,7 +65,11 @@ public final class BeamTrail {
     private final Deque<Segment> segments = new ArrayDeque<>();
 
     public void add(Vec3d from, Vec3d to, int color, Settings s) {
-        segments.addLast(new Segment(from, to, color));
+        add(from, to, color, false, s);
+    }
+
+    public void add(Vec3d from, Vec3d to, int color, boolean boosted, Settings s) {
+        segments.addLast(new Segment(from, to, color, boosted));
         while (segments.size() > s.maxSegments()) {
             segments.removeFirst();
         }

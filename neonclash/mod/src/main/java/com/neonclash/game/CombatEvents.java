@@ -11,6 +11,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -102,7 +103,8 @@ public final class CombatEvents {
         if (vc != null) {
             StyleService.apply(vc, StyleEvent.DEATH);
         }
-        HitFeedback.kill(killer, victim, victim.position().add(0, victim.getBbHeight() * 0.6, 0));
+        Vec3 dir = vc != null && vc.lastHitTick == victim.level().getGameTime() ? vc.lastHitDir : HitFeedback.direction(killer, victim, null);
+        HitFeedback.kill(killer, victim, victim.position().add(0, victim.getBbHeight() * 0.6, 0), dir);
         if (killer == null || killer == victim) return;
         Combatant kc = Combatants.get(killer);
         if (kc == null) return;

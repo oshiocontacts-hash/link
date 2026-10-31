@@ -9,6 +9,7 @@ import com.neonclash.registry.NCSounds;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 
@@ -51,6 +52,10 @@ public final class SkillService {
             SlowService.addZone(level, e.position().add(0, e.getBbHeight() * 0.5, 0), cfg.parryZoneRadius.get(),
                     cfg.parryZoneFactor.get(), cfg.parryZoneTicks.get());
             HitFeedback.burst(level, e.position().add(0, e.getBbHeight() * 0.6, 0), victim.teamColor(), cfg.hitParticleCount.get());
+            Vec3 center = e.position().add(0, e.getBbHeight() * 0.5, 0);
+            FxService.parry(level, center, cfg.parryZoneRadius.get(), victim.teamColor());
+            HitFeedback.shockwave(level, center, cfg.parryZoneRadius.get(), cfg.parryKnockback.get(), cfg.parryKnockbackLift.get(),
+                    t -> t != e && SwordService.isEnemy(victim, t));
         }
         e.level().playSound(null, e.getX(), e.getY(), e.getZ(), NCSounds.PARRY_SUCCESS.get(), SoundSource.PLAYERS, 1.0f, 1.0f);
         NCNetwork.send(e, S2CFeedbackPacket.of(S2CFeedbackPacket.Kind.PARRY_SUCCESS));
@@ -76,6 +81,7 @@ public final class SkillService {
         if (e.level() instanceof ServerLevel level) {
             SlowService.slowAllExcept(level, e, cfg.arenaRadius.get() * 2, cfg.lastStandSlowFactor.get(), ticks);
             HitFeedback.burst(level, e.position().add(0, e.getBbHeight() * 0.5, 0), victim.teamColor(), cfg.killParticleCount.get());
+            FxService.lastStand(level, e, victim.teamColor());
         }
         e.level().playSound(null, e.getX(), e.getY(), e.getZ(), NCSounds.LAST_STAND.get(), SoundSource.PLAYERS, 1.0f, 1.0f);
         NCNetwork.send(e, new S2CFeedbackPacket(S2CFeedbackPacket.Kind.LAST_STAND, 0, ticks, 0));

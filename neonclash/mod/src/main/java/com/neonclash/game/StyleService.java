@@ -17,6 +17,8 @@ public final class StyleService {
             NCNetwork.send(c.entity(), new S2CFeedbackPacket(S2CFeedbackPacket.Kind.RANK, change.rankedUp() ? 1f : 0f, 0, change.after().ordinal()));
             if (change.rankedUp()) {
                 HitFeedback.playTo(c.entity(), NCSounds.RANK_UP.get(), 0.8f, 1.0f + change.after().ordinal() * 0.1f);
+            } else {
+                HitFeedback.playTo(c.entity(), NCSounds.RANK_DOWN.get(), 0.5f, 1.0f);
             }
         }
         return change;

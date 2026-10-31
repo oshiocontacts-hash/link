@@ -12,7 +12,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class NCNetwork {
-    private static final String PROTOCOL = "2";
+    private static final String PROTOCOL = "3";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             NeonClash.id("main"), () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
 
@@ -42,6 +42,9 @@ public final class NCNetwork {
         CHANNEL.messageBuilder(S2CBeamPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(S2CBeamPacket::encode).decoder(S2CBeamPacket::decode)
                 .consumerMainThread(S2CBeamPacket::handle).add();
+        CHANNEL.messageBuilder(S2CFxPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(S2CFxPacket::encode).decoder(S2CFxPacket::decode)
+                .consumerMainThread(S2CFxPacket::handle).add();
     }
 
     /** 実プレイヤーにだけ送る（モブ・FakePlayer は無視）。 */

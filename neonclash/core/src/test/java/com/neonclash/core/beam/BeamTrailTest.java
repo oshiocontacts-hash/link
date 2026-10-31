@@ -37,6 +37,16 @@ class BeamTrailTest {
     }
 
     @Test
+    @DisplayName("ビートの区間は印が付く")
+    void boosted() {
+        BeamTrail t = new BeamTrail();
+        t.add(A, B, 1, S);
+        t.add(A, B, 2, true, S);
+        assertFalse(t.segments().iterator().next().boosted());
+        assertTrue(t.segments().stream().anyMatch(BeamTrail.Segment::boosted));
+    }
+
+    @Test
     @DisplayName("上限を超えたら古いものから捨てる")
     void capacity() {
         BeamTrail t = new BeamTrail();

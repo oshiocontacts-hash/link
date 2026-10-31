@@ -6,6 +6,12 @@
 
 Forge / Mojang / Modrinth に直接届く環境で `./gradlew build` と `:mod:runGameTestServer` を実行。ユニットテスト 121 件（`BeamTrailTest` 8 件を追加）、GameTest 8 件（`gunBeamStopsAtTheTarget` を追加）すべて成功。`:mod:runClient -Pneonclash.demo=true` も Intel Iris Xe の実 GPU で最後まで動き、mod 由来のエラーなし。ビームの描画はこの録画のフレームで確認した。
 
+ノックバック・演出・音の追加後（同じ環境）：ユニットテスト 143 件、GameTest 11 件（ノックバック 3 件を追加）すべて成功。`:mod:runClient -Pneonclash.demo=true` も mod 由来のエラーなしで完走。録画のフレームでキル表示・破片・輪・ダメージ数字・吹き飛ぶ Husk を確認した。画面全体が白くなるコマ（平均輝度 225 超が 25% 以上）は 0。
+
+音は聞いて確かめていない。確認したのは、再生時にエラーが出ないこと、BGM の長さがちょうど 1,323,000 サンプル（30 秒）であること、キックが拍の位置に乗っていること（拍の位置と裏の位置のエネルギー比 2.9）、ループの継ぎ目に音切れが見えないこと（スペクトログラム）。
+プレイヤー自身が押される動きは未確認（練習の Husk は銃を撃たない。速度の送信はブリンクと同じ経路）。
+
+
 ## まとめ
 
 開発 VM からは Forge / Mojang / CurseForge に届かないため、実機の確認は **GitHub Actions**（`.github/workflows/neonclash-demo.yml`）で行った。

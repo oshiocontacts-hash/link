@@ -2,8 +2,10 @@ package com.neonclash.client;
 
 import com.neonclash.config.NCConfig;
 import com.neonclash.core.round.RoundEngine;
+import com.neonclash.core.fx.Fx;
 import com.neonclash.core.round.Team;
 import com.neonclash.core.style.StyleRank;
+import com.neonclash.network.S2CFxPacket;
 import com.neonclash.network.S2CHudPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -32,6 +34,7 @@ public final class HudOverlay {
 
         drawSlowMoBars(g, w, h, pt);
         drawVignettes(g, w, h, hud);
+        drawImpactOverlays(g, w, h, teamRgb, pt);
         if (ClientState.inMatch() && mc.options.getCameraType().isFirstPerson() && !mc.player.isSpectator()) {
             drawCrosshair(g, w / 2, h / 2, teamRgb, pt);
         }
@@ -44,21 +47,25 @@ public final class HudOverlay {
         drawTopBar(g, font, sw, hud);
         drawSkills(g, font, sw, sh, hud, teamRgb);
         drawRank(g, font, sw, sh, pt);
+        drawKillBanner(g, font, sw, sh, teamRgb, pt);
         g.pose().popPose();
     }
 
     // ------------------------------------------------------------ crosshair / beat
 
+    /** 拍の瞬間に 1 で、すぐ減衰する。 */
+    private static float beatPulse() {
+        NCConfig.Client cfg = NCConfig.CLIENT;
+        if (!ClientState.BEAT.enabled() || !cfg.showBeat.get() || !ClientState.inMatch()) return 0f;
+        double since = ClientState.serverNowMs() - ClientState.BEAT.beatTimeMs(ClientState.BEAT.beatIndexAt(ClientState.serverNowMs()));
+        float p = (float) Math.max(0, 1 - since / (cfg.crosshairPulseTicks.get() * 50.0));
+        return p * p;
+    }
+
     private static void drawCrosshair(GuiGraphics g, int cx, int cy, int rgb, float pt) {
         NCConfig.Client cfg = NCConfig.CLIENT;
         float base = cfg.crosshairBaseSize.get().floatValue();
-        float pulse = 0f;
-        if (ClientState.BEAT.enabled() && cfg.showBeat.get() && ClientState.inMatch()) {
-            double since = ClientState.serverNowMs() - ClientState.BEAT.beatTimeMs(ClientState.BEAT.beatIndexAt(ClientState.serverNowMs()));
-            double len = cfg.crosshairPulseTicks.get() * 50.0;
-            pulse = (float) Math.max(0, 1 - since / len);
-            pulse = pulse * pulse;
-        }
+        float pulse = beatPulse();
         float r = base * (1f + cfg.crosshairPulseScale.get().floatValue() * pulse);
         float flash = ClientState.beatFlashTicks > 0 ? 1f : 0f;
         int c = Neon.argb(flash > 0 ? Neon.WHITE : rgb, 0.55f + 0.45f * Math.max(pulse, flash));
@@ -95,7 +102,10 @@ public final class HudOverlay {
             marker(g, cx, cy, 4, 10, Neon.argb(rgb, a));
         } else if (ClientState.hitMarkerTicks > 0) {
             float a = ClientState.hitMarkerTicks / (float) Math.max(1, cfg.hitMarkerTicks.get());
-            marker(g, cx, cy, 3, 7, Neon.argb(Neon.WHITE, a));
+            boolean head = (ClientState.hitMarkerFlags & S2CFxPacket.HEAD) != 0, beat = (ClientState.hitMarkerFlags & S2CFxPacket.BEAT) != 0;
+            int color = head ? 0xFFD23F : beat ? 0xFFE14D : Neon.WHITE;
+            int grow = Math.round(a * a * 4) + (head ? 2 : 0); // 当たった瞬間に大きく開いて戻る
+            marker(g, cx, cy, 3 + grow / 2, 7 + grow, Neon.argb(color, a));
         }
     }
 
@@ -220,10 +230,61 @@ public final class HudOverlay {
         g.fill(0, h - bar, w, h, 0xE0000000);
     }
 
+    /** 被弾の向き、キルの閃光、集中線。 */
+    private static void drawImpactOverlays(GuiGraphics g, int w, int h, int teamRgb, float pt) {
+        NCConfig.Client cfg = NCConfig.CLIENT;
+        Minecraft mc = Minecraft.getInstance();
+        if (ClientState.killFlashTicks > 0) {
+            float t = ClientState.killFlashTicks / (float) Math.max(1, cfg.flashTicks.get());
+            g.fill(0, 0, w, h, Neon.argb(teamRgb, cfg.killFlashAlpha.get().floatValue() * t * t));
+        }
+        if (ClientState.speedLineTicks > 0) {
+            float t = (ClientState.speedLineTicks - pt) / Math.max(1, cfg.speedLineTicks.get());
+            float outer = (float) Math.hypot(w, h) * 0.6f;
+            Neon.rays(g, w / 2f, h / 2f, h * (0.5f - 0.15f * t), outer, 46, ClientState.speedLineTicks * 31L, teamRgb, t * 0.55f);
+        }
+        if (mc.player != null) {
+            int total = Math.max(1, cfg.hurtIndicatorTicks.get());
+            for (ClientState.Hurt hurt : ClientState.HURTS) {
+                float t = Math.min(1f, (hurt.ticks - pt) / total);
+                double angle = Fx.screenAngle(hurt.angle, mc.player.getYRot());
+                Neon.arc(g, w / 2f, h / 2f, h * 0.24f, 12f, angle, 1.0, 0xFF2E63, t * 0.95f);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ kill banner
+
+    private static void drawKillBanner(GuiGraphics g, Font font, int w, int h, int teamRgb, float pt) {
+        NCConfig.Client cfg = NCConfig.CLIENT;
+        if (ClientState.killBannerTicks <= 0) return;
+        int total = Math.max(1, cfg.killBannerTicks.get());
+        float age = total - ClientState.killBannerTicks + pt;
+        float pop = 1f + 1.4f * (float) Math.pow(Math.max(0f, 1f - age / 5f), 2);
+        int streak = Math.max(1, Math.min(5, ClientState.killStreak));
+        int rgb = streak >= 3 ? 0xFFD23F : streak == 2 ? 0xFF3CF2 : teamRgb;
+        int cx = w / 2, cy = (int) (h * 0.3f);
+        g.pose().pushPose();
+        g.pose().translate(cx, cy, 0);
+        g.pose().scale(2f * pop, 2f * pop, 1f);
+        Neon.glowText(g, font, Component.translatable("neonclash.hud.kill." + streak).withStyle(ChatFormatting.BOLD), 0, -4, rgb, 1f);
+        g.pose().popPose();
+    }
+
     private static void drawVignettes(GuiGraphics g, int w, int h, S2CHudPacket hud) {
         int edge = 0;
         float alpha = 0f;
         Minecraft mc = Minecraft.getInstance();
+        NCConfig.Client cfg = NCConfig.CLIENT;
+        float thick = h * 0.18f;
+        // 上のランクでは拍に合わせて画面の縁が光る
+        if (hud != null && ClientState.rank.ordinal() >= StyleRank.A.ordinal()) {
+            Neon.edgeGlow(g, w, h, thick * 0.7f, Neon.rank(ClientState.rank), beatPulse() * cfg.beatVignetteAlpha.get().floatValue());
+        }
+        if (ClientState.inMatch() && mc.player != null && !mc.player.isSpectator() && mc.player.getHealth() <= cfg.lowHealthThreshold.get()) {
+            float beat = 0.5f + 0.5f * (float) Math.sin(System.currentTimeMillis() / 180.0);
+            Neon.edgeGlow(g, w, h, thick * 1.4f, 0xFF2E63, 0.22f + 0.2f * beat);
+        }
         if (hud != null && hud.phase() == RoundEngine.Phase.ROUND.ordinal() && mc.player != null && !mc.player.isSpectator()) {
             double dx = mc.player.getX() - hud.zoneX(), dz = mc.player.getZ() - hud.zoneZ();
             if (dx * dx + dz * dz > hud.zoneRadius() * hud.zoneRadius()) {
@@ -240,16 +301,8 @@ public final class HudOverlay {
             alpha = Math.max(alpha, 0.4f * ClientState.parryFlashTicks / Math.max(1, NCConfig.CLIENT.flashTicks.get()));
         } else if (ClientState.hitStopTicks > 0) {
             edge = 0xFF2E63;
-            alpha = Math.max(alpha, 0.3f);
+            alpha = Math.max(alpha, 0.45f);
         }
-        if (alpha <= 0) return;
-        int t = 12;
-        for (int i = 0; i < t; i++) {
-            int c = Neon.argb(edge, alpha * (1f - i / (float) t));
-            g.fill(i, i, w - i, i + 1, c);
-            g.fill(i, h - i - 1, w - i, h - i, c);
-            g.fill(i, i + 1, i + 1, h - i - 1, c);
-            g.fill(w - i - 1, i + 1, w - i, h - i - 1, c);
-        }
+        Neon.edgeGlow(g, w, h, thick, edge, alpha);
     }
 }

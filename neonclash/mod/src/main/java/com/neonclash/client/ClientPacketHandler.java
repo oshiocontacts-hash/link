@@ -6,6 +6,7 @@ import com.neonclash.game.MovementHandler;
 import com.neonclash.network.S2CBeamPacket;
 import com.neonclash.network.S2CBeatPacket;
 import com.neonclash.network.S2CFeedbackPacket;
+import com.neonclash.network.S2CFxPacket;
 import com.neonclash.network.S2CHudPacket;
 import com.neonclash.network.S2CSlowMoPacket;
 import com.neonclash.network.S2CUpgradeOfferPacket;
@@ -32,11 +33,20 @@ public final class ClientPacketHandler {
                 }
             }
             case HIT_STOP -> ClientState.hitStopTicks = Math.max(ClientState.hitStopTicks, p.ticks());
-            case HIT_CONFIRM -> ClientState.hitMarkerTicks = NCConfig.CLIENT.hitMarkerTicks.get();
-            case KILL_CONFIRM -> {
-                ClientState.killMarkerTicks = NCConfig.CLIENT.killMarkerTicks.get();
-                ClientState.killStreak = p.extra();
+            case HIT_CONFIRM -> {
+                ClientState.hitMarkerTicks = NCConfig.CLIENT.hitMarkerTicks.get();
+                ClientState.hitMarkerFlags = p.extra();
             }
+            case KILL_CONFIRM -> {
+                NCConfig.Client cfg = NCConfig.CLIENT;
+                ClientState.killMarkerTicks = cfg.killMarkerTicks.get();
+                ClientState.killBannerTicks = cfg.killBannerTicks.get();
+                ClientState.killFlashTicks = cfg.flashTicks.get();
+                ClientState.speedLineTicks = cfg.speedLineTicks.get();
+                ClientState.killStreak = p.extra();
+                kickFov(cfg.killFovKick.get().floatValue());
+            }
+            case HURT -> ClientState.addHurt(p.value(), NCConfig.CLIENT.hurtIndicatorTicks.get());
             case RANK -> {
                 StyleRank r = StyleRank.values()[Math.max(0, Math.min(StyleRank.values().length - 1, p.extra()))];
                 ClientState.rankWentUp = p.value() > 0.5f;
@@ -55,8 +65,18 @@ public final class ClientPacketHandler {
             case PARRY -> ClientState.parryTicks = p.ticks();
             case PARRY_SUCCESS -> ClientState.parryFlashTicks = NCConfig.CLIENT.flashTicks.get();
             case LAST_STAND -> ClientState.lastStandTicks = p.ticks();
-            case BLINK -> ClientState.blinkFlashTicks = NCConfig.CLIENT.flashTicks.get();
+            case BLINK -> {
+                NCConfig.Client cfg = NCConfig.CLIENT;
+                ClientState.blinkFlashTicks = cfg.flashTicks.get();
+                ClientState.speedLineTicks = cfg.speedLineTicks.get();
+                kickFov(cfg.blinkFovKick.get().floatValue());
+            }
         }
+    }
+
+    private static void kickFov(float amount) {
+        ClientState.fovKick = amount;
+        ClientState.fovKickTicks = NCConfig.CLIENT.fovKickTicks.get();
     }
 
     public static void onSlowMo(S2CSlowMoPacket p) {
@@ -69,7 +89,15 @@ public final class ClientPacketHandler {
         BeamRenderer.add(p);
     }
 
+    public static void onFx(S2CFxPacket p) {
+        FxRenderer.add(p);
+    }
+
     public static void onHud(S2CHudPacket p) {
+        S2CHudPacket before = ClientState.hud;
+        if (before != null && p.phase() >= 0 && before.round() != p.round()) {
+            MatchMusic.resync(); // 長いループのわずかなずれをラウンドごとに消す
+        }
         ClientState.hud = p.phase() >= 0 ? p : null;
         MovementHandler.clientJumpUpgrade = p.jumpUpgrade();
         if (p.phase() >= 0) {
@@ -89,7 +117,11 @@ public final class ClientPacketHandler {
             if (info != null) oneWay = info.getLatency() / 2;
         }
         ClientState.serverOffsetMs = (p.serverNowMs() + oneWay) - System.currentTimeMillis();
+        boolean moved = ClientState.BEAT.bpm() != p.bpm() || ClientState.BEAT.anchorMs() != p.anchorMs() || ClientState.BEAT.anchorIndex() != p.anchorIndex();
         ClientState.BEAT.sync(p.bpm(), p.anchorMs(), p.anchorIndex(), p.toleranceMs(), p.enabled());
+        if (moved) {
+            MatchMusic.resync();
+        }
     }
 
     public static void onUpgradeOffer(S2CUpgradeOfferPacket p) {

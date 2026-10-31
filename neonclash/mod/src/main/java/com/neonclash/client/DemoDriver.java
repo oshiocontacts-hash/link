@@ -279,6 +279,7 @@ public final class DemoDriver {
     // ------------------------------------------------------------------ ワールド・録画
 
     private static void createWorld(Minecraft mc) {
+        mc.options.pauseOnLostFocus = false; // 録画中にウィンドウが後ろへ回っても試合を止めない
         LevelSettings settings = new LevelSettings(WORLD, GameType.CREATIVE, false, Difficulty.NORMAL, true,
                 new GameRules(), WorldDataConfiguration.DEFAULT);
         mc.createWorldOpenFlows().createFreshLevel(WORLD, settings, new WorldOptions(20261030L, false, false),

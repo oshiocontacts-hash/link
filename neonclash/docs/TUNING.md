@@ -42,4 +42,9 @@
 | 19 | CLIENT: `crosshairPulseScale` / `crosshairPulseTicks` | 0.6 / 4 | 拍が見えるが邪魔ではないか | |
 | 20 | CLIENT: `slowMoFovMultiplier` / `slowMoSoundPitch` | 0.85 / 0.6 | スロー演出が「効いてる」感じがするか、酔わないか | |
 | 21 | CLIENT: `beamFadeTicks` / `beamGlowWidth` / `beamGlowAlpha` | 16 / 0.32 / 0.45 | ビームが残る長さと濃さ。撃ち合いで相手が見えなくならないか | 10〜30。2v2 以上で画面がうるさければ短く |
+| 23 | `knockback.gun` / `gunLift` | 0.42 / 0.12 | 押された側が操作を奪われすぎないか、剣の間合いに入れなくならないか | 0.2〜0.6。1 発 1〜2 ブロックが既定の目安 |
+| 24 | `knockback.killBlast` / `killBlastRadius` | 0.5 / 4 | 味方も押されるので、邪魔か盛り上がるか | 味方を押したくなければ半径 0 |
+| 25 | CLIENT: `fxKillSparks` / `fxKillShards` / `killFlashAlpha` | 80 / 40 / 0.16 | キルが派手すぎて次の相手が見えなくならないか | 2v2 以上で試す |
+| 26 | CLIENT: `musicVolume` / `musicLatencyMs` | 0.8 / 40 | 効果音と BGM の音量差。BGM のキックが拍の表示より遅れて聞こえないか | 遅れて聞こえるなら latency を増やす |
+| 27 | `feel.shotSoundVolume` | 1.6 | TaCZ の銃声と重ねて、うるさくないか | 下げるなら 0.8 |
 | 22 | `style.points.on_beat` | 10 | 空撃ちでもビートに合わせれば加点される。狙って合わせるとランクが上がりすぎないか | 下げるなら 3〜5。命中時だけ加点にするのは別の修正 |

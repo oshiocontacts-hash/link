@@ -69,10 +69,17 @@ public final class NCConfig {
         // feel
         public final IntValue hitStopTicks;
         public final DoubleValue hitShakeDegrees;
+        public final DoubleValue hurtShakeDegrees;
         public final DoubleValue killShakeDegrees;
         public final IntValue shakeTicks;
         public final DoubleValue hitSoundVolume;
         public final DoubleValue hitSoundPitch;
+        public final DoubleValue hitComboPitchStep;
+        public final DoubleValue hitComboMaxPitch;
+        public final IntValue hitComboWindowTicks;
+        public final DoubleValue hurtSoundVolume;
+        public final DoubleValue shotSoundVolume;
+        public final DoubleValue shotPitchVariance;
         public final DoubleValue killSoundVolume;
         public final DoubleValue killBasePitch;
         public final DoubleValue killPitchStep;
@@ -82,6 +89,20 @@ public final class NCConfig {
         public final IntValue killParticleCount;
         public final DoubleValue particleScale;
         public final DoubleValue particleSpread;
+        public final DoubleValue fxViewDistance;
+        // knockback
+        public final DoubleValue gunKnockback;
+        public final DoubleValue gunKnockbackLift;
+        public final DoubleValue knockbackBeatMultiplier;
+        public final DoubleValue knockbackHeadMultiplier;
+        public final DoubleValue swordKnockback;
+        public final DoubleValue swordKnockbackLift;
+        public final DoubleValue parryKnockback;
+        public final DoubleValue parryKnockbackLift;
+        public final DoubleValue killBlastRadius;
+        public final DoubleValue killBlastKnockback;
+        public final DoubleValue killBlastLift;
+        public final DoubleValue knockbackMaxSpeed;
         // kill reward
         public final DoubleValue killHeal;
         public final IntValue killSpeedTicks;
@@ -176,21 +197,44 @@ public final class NCConfig {
             b.pop();
 
             b.comment("手応え").push("feel");
-            hitStopTicks = b.comment("ヒットストップ：被弾側の移動を止める tick").defineInRange("hitStopTicks", 3, 0, 40);
+            hitStopTicks = b.comment("ヒットストップ：被弾側の入力を止める tick（押された勢いは止めない）").defineInRange("hitStopTicks", 3, 0, 40);
             hitShakeDegrees = b.comment("命中時に攻撃側のカメラを揺らす強さ（度）").defineInRange("hitShakeDegrees", 0.8, 0.0, 20.0);
-            killShakeDegrees = b.comment("キル時のカメラの揺れ（度）").defineInRange("killShakeDegrees", 2.0, 0.0, 20.0);
+            hurtShakeDegrees = b.comment("被弾時に自分のカメラを揺らす強さ（度）").defineInRange("hurtShakeDegrees", 1.6, 0.0, 20.0);
+            killShakeDegrees = b.comment("キル時のカメラの揺れ（度）").defineInRange("killShakeDegrees", 3.0, 0.0, 20.0);
             shakeTicks = b.comment("カメラの揺れの長さ").defineInRange("shakeTicks", 5, 0, 40);
             hitSoundVolume = b.defineInRange("hitSoundVolume", 0.9, 0.0, 4.0);
-            hitSoundPitch = b.defineInRange("hitSoundPitch", 1.5, 0.5, 2.0);
+            hitSoundPitch = b.comment("命中音の基本ピッチ").defineInRange("hitSoundPitch", 1.0, 0.5, 2.0);
+            hitComboPitchStep = b.comment("連続命中1回ごとのピッチ上昇").defineInRange("hitComboPitchStep", 0.12, 0.0, 1.0);
+            hitComboMaxPitch = b.defineInRange("hitComboMaxPitch", 1.5, 0.5, 2.0);
+            hitComboWindowTicks = b.comment("この tick 以内の次の命中を連続命中とする").defineInRange("hitComboWindowTicks", 30, 1, 400);
+            hurtSoundVolume = b.comment("撃たれた側に鳴る音").defineInRange("hurtSoundVolume", 0.8, 0.0, 4.0);
+            shotSoundVolume = b.comment("TaCZ の銃声に重ねるネオンの発射音（1 を超えると遠くまで届く）").defineInRange("shotSoundVolume", 1.6, 0.0, 8.0);
+            shotPitchVariance = b.comment("発射音のピッチのばらつき").defineInRange("shotPitchVariance", 0.08, 0.0, 1.0);
             killSoundVolume = b.defineInRange("killSoundVolume", 1.0, 0.0, 4.0);
-            killBasePitch = b.comment("キル音の基本ピッチ").defineInRange("killBasePitch", 0.9, 0.5, 2.0);
-            killPitchStep = b.comment("連続キル1回ごとのピッチ上昇").defineInRange("killPitchStep", 0.15, 0.0, 1.0);
+            killBasePitch = b.comment("キル音の基本ピッチ").defineInRange("killBasePitch", 1.0, 0.5, 2.0);
+            killPitchStep = b.comment("連続キル1回ごとのピッチ上昇").defineInRange("killPitchStep", 0.19, 0.0, 1.0);
             killMaxPitch = b.defineInRange("killMaxPitch", 2.0, 0.5, 2.0);
             killStreakWindowTicks = b.comment("この tick 以内の次のキルを連続キルとする").defineInRange("killStreakWindowTicks", 160, 1, 2400);
-            hitParticleCount = b.defineInRange("hitParticleCount", 10, 0, 200);
-            killParticleCount = b.defineInRange("killParticleCount", 40, 0, 500);
+            hitParticleCount = b.comment("バニラのダストの数。近くで大きな四角になるので既定は 0（演出は CLIENT の fx*）").defineInRange("hitParticleCount", 0, 0, 200);
+            killParticleCount = b.defineInRange("killParticleCount", 0, 0, 500);
             particleScale = b.defineInRange("particleScale", 1.2, 0.1, 4.0);
             particleSpread = b.defineInRange("particleSpread", 0.25, 0.0, 3.0);
+            fxViewDistance = b.comment("演出を送るプレイヤーまでの距離").defineInRange("fxViewDistance", 96.0, 8.0, 512.0);
+            b.pop();
+
+            b.comment("ノックバック（速さの単位はブロック/tick。地上で止まるまでに速さの約 2 倍進む）").push("knockback");
+            gunKnockback = b.comment("弾の命中で押す強さ").defineInRange("gun", 0.42, 0.0, 5.0);
+            gunKnockbackLift = b.comment("弾の命中で浮かせる強さ").defineInRange("gunLift", 0.12, 0.0, 3.0);
+            knockbackBeatMultiplier = b.comment("ビートに乗った弾の倍率").defineInRange("beatMultiplier", 1.6, 0.0, 10.0);
+            knockbackHeadMultiplier = b.comment("ヘッドショットの倍率").defineInRange("headMultiplier", 1.3, 0.0, 10.0);
+            swordKnockback = b.comment("剣を受けてラストスタンドで耐えた相手を押す強さ").defineInRange("sword", 1.3, 0.0, 5.0);
+            swordKnockbackLift = b.defineInRange("swordLift", 0.35, 0.0, 3.0);
+            parryKnockback = b.comment("パリィ成功で周りの敵を押す強さ（範囲は slow.parryZoneRadius）").defineInRange("parry", 0.9, 0.0, 5.0);
+            parryKnockbackLift = b.defineInRange("parryLift", 0.25, 0.0, 3.0);
+            killBlastRadius = b.comment("キルの爆風の半径（0 で無効）。敵味方を問わず押す").defineInRange("killBlastRadius", 4.0, 0.0, 32.0);
+            killBlastKnockback = b.defineInRange("killBlast", 0.5, 0.0, 5.0);
+            killBlastLift = b.defineInRange("killBlastLift", 0.2, 0.0, 3.0);
+            knockbackMaxSpeed = b.comment("押された速さの上限").defineInRange("maxSpeed", 1.4, 0.1, 10.0);
             b.pop();
 
             b.comment("キル報酬").push("killReward");
@@ -334,6 +378,11 @@ public final class NCConfig {
                     killPitchStep.get().floatValue(), killMaxPitch.get().floatValue());
         }
 
+        public KillStreak.Settings hitComboSettings() {
+            return new KillStreak.Settings(hitComboWindowTicks.get(), hitSoundPitch.get().floatValue(),
+                    hitComboPitchStep.get().floatValue(), hitComboMaxPitch.get().floatValue());
+        }
+
         public ParrySkill.Settings parrySettings(int extraWindow) {
             return new ParrySkill.Settings(parryWindowTicks.get() + extraWindow, parryCooldownTicks.get(), parrySuccessCooldownMultiplier.get());
         }
@@ -413,6 +462,38 @@ public final class NCConfig {
         public final DoubleValue beamMuzzleRight;
         public final DoubleValue beamMuzzleDown;
         public final DoubleValue beamMuzzleDecay;
+        public final DoubleValue beamBeatWidth;
+        public final BooleanValue fxEnabled;
+        public final IntValue fxMaxSparks;
+        public final IntValue fxHitSparks;
+        public final IntValue fxImpactSparks;
+        public final IntValue fxKillSparks;
+        public final IntValue fxKillShards;
+        public final IntValue fxBlinkSparks;
+        public final DoubleValue fxMuzzleSize;
+        public final BooleanValue damageNumbers;
+        public final IntValue damageNumberTicks;
+        public final DoubleValue damageNumberScale;
+        public final DoubleValue blinkFovKick;
+        public final DoubleValue killFovKick;
+        public final IntValue fovKickTicks;
+        public final DoubleValue killFlashAlpha;
+        public final IntValue speedLineTicks;
+        public final IntValue killBannerTicks;
+        public final IntValue hurtIndicatorTicks;
+        public final DoubleValue lowHealthThreshold;
+        public final DoubleValue beatVignetteAlpha;
+        public final BooleanValue zoneWall;
+        public final DoubleValue zoneWallHeight;
+        public final DoubleValue zoneWallAlpha;
+        public final DoubleValue zoneWallNearAlpha;
+        public final DoubleValue zoneWallNearDistance;
+        public final BooleanValue musicEnabled;
+        public final DoubleValue musicVolume;
+        public final DoubleValue musicSlowMoDuck;
+        public final DoubleValue musicIntermissionDuck;
+        public final IntValue musicLatencyMs;
+        public final ConfigValue<List<? extends Number>> musicDriveByRank;
 
         Client(ForgeConfigSpec.Builder b) {
             b.comment("見た目・演出（各プレイヤーが調整）").push("visual");
@@ -448,6 +529,39 @@ public final class NCConfig {
             beamMuzzleRight = b.comment("一人称で自分のビームの根元を右へずらす量").defineInRange("beamMuzzleRight", 0.05, -2.0, 2.0);
             beamMuzzleDown = b.comment("一人称で自分のビームの根元を下へずらす量").defineInRange("beamMuzzleDown", 0.14, -2.0, 2.0);
             beamMuzzleDecay = b.comment("根元のずらしが 0 になる距離").defineInRange("beamMuzzleDecay", 10.0, 0.0, 64.0);
+            beamBeatWidth = b.comment("ビートに乗った射撃のビームの太さの倍率").defineInRange("beamBeatWidth", 1.7, 1.0, 8.0);
+            fxEnabled = b.comment("光の粒・輪・斬撃の弧など世界の中の演出").define("fxEnabled", true);
+            fxMaxSparks = b.comment("同時に描く粒の上限").defineInRange("fxMaxSparks", 2048, 16, 16384);
+            fxHitSparks = b.comment("命中の粒の数").defineInRange("fxHitSparks", 16, 0, 256);
+            fxImpactSparks = b.comment("壁に着弾した粒の数").defineInRange("fxImpactSparks", 9, 0, 256);
+            fxKillSparks = b.comment("キルの粒の数").defineInRange("fxKillSparks", 80, 0, 1024);
+            fxKillShards = b.comment("キルで砕ける破片の数").defineInRange("fxKillShards", 40, 0, 1024);
+            fxBlinkSparks = b.comment("ブリンクの粒の数").defineInRange("fxBlinkSparks", 24, 0, 256);
+            fxMuzzleSize = b.comment("発射の光の大きさ（ブロック）").defineInRange("fxMuzzleSize", 0.55, 0.0, 4.0);
+            damageNumbers = b.comment("当てたダメージの数字を出す").define("damageNumbers", true);
+            damageNumberTicks = b.defineInRange("damageNumberTicks", 18, 1, 100);
+            damageNumberScale = b.defineInRange("damageNumberScale", 0.03, 0.005, 0.2);
+            blinkFovKick = b.comment("ブリンクで FOV を広げる量（0.12=+12%）").defineInRange("blinkFovKick", 0.12, -0.5, 0.5);
+            killFovKick = b.comment("キルで FOV を変える量（負で寄る）").defineInRange("killFovKick", -0.06, -0.5, 0.5);
+            fovKickTicks = b.defineInRange("fovKickTicks", 8, 1, 40);
+            killFlashAlpha = b.comment("キルの画面フラッシュの濃さ").defineInRange("killFlashAlpha", 0.16, 0.0, 1.0);
+            speedLineTicks = b.comment("キル・ブリンクの集中線の長さ").defineInRange("speedLineTicks", 7, 0, 40);
+            killBannerTicks = b.comment("KILL 表示の長さ").defineInRange("killBannerTicks", 34, 0, 200);
+            hurtIndicatorTicks = b.comment("撃たれた向きの表示の長さ").defineInRange("hurtIndicatorTicks", 18, 0, 100);
+            lowHealthThreshold = b.comment("この体力以下で画面の縁が脈打つ").defineInRange("lowHealthThreshold", 6.0, 0.0, 40.0);
+            beatVignetteAlpha = b.comment("ランク A 以上で拍に合わせて画面の縁を光らせる濃さ").defineInRange("beatVignetteAlpha", 0.12, 0.0, 1.0);
+            zoneWall = b.comment("エリアの境界を光の壁で描く").define("zoneWall", true);
+            zoneWallHeight = b.comment("壁の高さ（カメラの上下それぞれ）").defineInRange("zoneWallHeight", 10.0, 1.0, 64.0);
+            zoneWallAlpha = b.comment("壁の濃さ").defineInRange("zoneWallAlpha", 0.16, 0.0, 1.0);
+            zoneWallNearAlpha = b.comment("壁に近づいたときの濃さ").defineInRange("zoneWallNearAlpha", 0.6, 0.0, 1.0);
+            zoneWallNearDistance = b.defineInRange("zoneWallNearDistance", 8.0, 0.1, 64.0);
+            musicEnabled = b.comment("試合の BGM（拍に同期。音量はゲームの「音楽」でも変わる）").define("musicEnabled", true);
+            musicVolume = b.defineInRange("musicVolume", 0.8, 0.0, 1.0);
+            musicSlowMoDuck = b.comment("スロー中の BGM の音量倍率").defineInRange("musicSlowMoDuck", 0.4, 0.0, 1.0);
+            musicIntermissionDuck = b.comment("ラウンド間の BGM の音量倍率").defineInRange("musicIntermissionDuck", 0.6, 0.0, 1.0);
+            musicLatencyMs = b.comment("音が出るまでの遅れの見込み。BGM が拍より遅れて聞こえるなら増やす").defineInRange("musicLatencyMs", 40, 0, 500);
+            musicDriveByRank = b.comment("スタイルランク D, C, B, A, S ごとのメロディ層の音量")
+                    .defineList("musicDriveByRank", List.of(0.0, 0.25, 0.55, 0.8, 1.0), o -> o instanceof Number n && n.doubleValue() >= 0);
             b.pop();
         }
     }

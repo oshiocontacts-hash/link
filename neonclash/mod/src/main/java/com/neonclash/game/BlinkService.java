@@ -50,7 +50,7 @@ public final class BlinkService {
         e.hurtMarked = true; // プレイヤーへ速度を送る
         c.lastBlinkTick = level.getGameTime();
 
-        HitFeedback.trail(level, from.add(0, e.getBbHeight() * 0.5, 0), to.add(0, e.getBbHeight() * 0.5, 0), c.teamColor());
+        FxService.blink(level, from, to, e.getBbHeight(), c.teamColor());
         level.playSound(null, from.x, from.y, from.z, NCSounds.BLINK.get(), SoundSource.PLAYERS, 0.8f, 1.2f);
         level.playSound(null, to.x, to.y, to.z, NCSounds.BLINK.get(), SoundSource.PLAYERS, 0.8f, 1.5f);
         NCNetwork.send(e, S2CFeedbackPacket.of(S2CFeedbackPacket.Kind.BLINK));

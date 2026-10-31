@@ -11,6 +11,7 @@ import com.neonclash.core.style.StyleMeter;
 import com.neonclash.core.upgrade.UpgradeStat;
 import com.neonclash.core.upgrade.UpgradeStats;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
@@ -25,6 +26,8 @@ public final class Combatant {
     public final ParrySkill parry = new ParrySkill();
     public final LastStand lastStand = new LastStand();
     public final KillStreak killStreak = new KillStreak();
+    /** 連続で当てると命中音が上がる（仕組みは連続キルと同じ） */
+    public final KillStreak hitCombo = new KillStreak();
     public final StyleMeter style;
     public final UpgradeStats upgrades = new UpgradeStats();
 
@@ -39,6 +42,11 @@ public final class Combatant {
     public long lastBlinkTick = Long.MIN_VALUE;
     /** 直近のビートに乗った射撃の tick（弾にボーナスを付けるため） */
     public long lastOnBeatFireTick = Long.MIN_VALUE;
+    /** 発射の演出を出した tick（散弾で重ならないように） */
+    public long lastShotFxTick = Long.MIN_VALUE;
+    /** 直近に弾を受けた向きと tick（キルの破片を飛ばす向き） */
+    public Vec3 lastHitDir = Vec3.ZERO;
+    public long lastHitTick = Long.MIN_VALUE;
     /** TaCZ の命中を処理した回数（GameTest・デバッグ用） */
     public int gunHitsTaken;
     public int gunHitsDealt;

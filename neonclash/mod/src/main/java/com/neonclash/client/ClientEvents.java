@@ -9,12 +9,10 @@ import com.neonclash.network.NCNetwork;
 import com.neonclash.registry.NCSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.Input;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.client.resources.sounds.TickableSoundInstance;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.InputEvent;
@@ -43,20 +41,21 @@ public final class ClientEvents {
         if (mc.player == null) return;
         ClientState.tick();
         BeamRenderer.tick();
+        FxRenderer.tick();
         while (NCKeys.BLINK.consumeClick()) {
             NCNetwork.sendToServer(new C2SActionPacket(C2SActionPacket.Action.BLINK, 0));
         }
         while (NCKeys.PARRY.consumeClick()) {
             NCNetwork.sendToServer(new C2SActionPacket(C2SActionPacket.Action.PARRY, 0));
         }
-        if (ClientState.hitStopTicks > 0) {
-            // ヒットストップ：被弾側の移動を止める
-            LocalPlayer p = mc.player;
-            double keep = NCConfig.CLIENT.hitStopInputFreeze.get();
-            Vec3 v = p.getDeltaMovement();
-            p.setDeltaMovement(v.x * keep, Math.min(v.y, 0) * keep, v.z * keep);
-        }
         tickBeatClick(mc);
+    }
+
+    @SubscribeEvent
+    public static void onRenderTick(TickEvent.RenderTickEvent event) {
+        if (event.phase == TickEvent.Phase.START) {
+            MatchMusic.frame();
+        }
     }
 
     /** 試合中は同期済みの時計で拍のクリックを鳴らす（サーバー tick の粒度に縛られない）。 */
@@ -67,7 +66,7 @@ public final class ClientEvents {
             ClientState.lastBeatIndex = idx;
             ClientState.lastBeatAtMs = System.currentTimeMillis();
             float vol = NCConfig.CLIENT.beatClickVolume.get().floatValue();
-            if (vol > 0) {
+            if (vol > 0 && !MatchMusic.audible()) {
                 boolean accent = Math.floorMod(idx, NCConfig.CLIENT.beatAccentEvery.get()) == 0;
                 mc.getSoundManager().play(SimpleSoundInstance.forUI(NCSounds.BEAT.get(), accent ? 1.25f : 1.0f, accent ? vol * 1.5f : vol));
             }
@@ -87,6 +86,7 @@ public final class ClientEvents {
         }
     }
 
+    /** ヒットストップ：被弾側の入力を止める。押された勢いは止めない（ノックバックが消えるので）。 */
     @SubscribeEvent
     public static void onMovementInput(MovementInputUpdateEvent event) {
         if (ClientState.hitStopTicks <= 0) return;
@@ -117,6 +117,10 @@ public final class ClientEvents {
             double m = NCConfig.CLIENT.slowMoFovMultiplier.get();
             event.setFOV(event.getFOV() * (1.0 + (m - 1.0) * a));
         }
+        if (ClientState.fovKickTicks > 0) {
+            float t = (ClientState.fovKickTicks - (float) event.getPartialTick()) / NCConfig.CLIENT.fovKickTicks.get();
+            event.setFOV(event.getFOV() * (1.0 + ClientState.fovKick * Math.max(0f, t) * t));
+        }
     }
 
     @SubscribeEvent
@@ -134,6 +138,11 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void onSound(PlaySoundEvent event) {
         SoundInstance s = event.getSound();
+        // 試合の BGM が鳴っている間はバニラの音楽を止める
+        if (s != null && s.getSource() == SoundSource.MUSIC && MatchMusic.playing() && !(s instanceof MatchMusic.Stem)) {
+            event.setSound(null);
+            return;
+        }
         if (s == null || s instanceof TickableSoundInstance || s.getSource() == SoundSource.MUSIC || s instanceof PitchedSound) return;
         float a = slowMoAmount(0);
         if (a <= 0) return;
@@ -155,6 +164,8 @@ public final class ClientEvents {
     public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientState.reset();
         BeamRenderer.clear();
+        FxRenderer.clear();
+        MatchMusic.resync();
         SlowMoShader.close();
     }
 }

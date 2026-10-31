@@ -26,7 +26,6 @@ import com.neonclash.registry.NCItems;
 import com.neonclash.registry.NCSounds;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
@@ -169,8 +168,7 @@ public final class MatchController {
 
     private void tickZone() {
         int elapsed = engine.elapsedTicks();
-        double r = zone.radiusAt(elapsed);
-        // 1 秒ごとにエリア外ダメージ
+        // 1 秒ごとにエリア外ダメージ（境界の壁はクライアントが HUD の値から描く）
         if (elapsed % 20 == 0 && NCConfig.SERVER.outsideDamagePerSecond.get() > 0) {
             for (UUID id : roster.keySet()) {
                 Combatant c = Combatants.get(id);
@@ -182,16 +180,6 @@ public final class MatchController {
                 }
             }
         }
-        // 境界の可視化（縮小中は毎 0.5 秒、それ以外は毎 2 秒）
-        int interval = engine.isShrinking() ? 10 : 40;
-        if (elapsed % interval == 0) {
-            DustParticleOptions p = HitFeedback.dust(NCConfig.parseColor(NCConfig.SERVER.neutralColor.get(), 0xF8F32B));
-            int points = Math.max(16, (int) (r * 4));
-            for (int i = 0; i < points; i++) {
-                double a = Math.PI * 2 * i / points;
-                level.sendParticles(p, center.x + Math.cos(a) * r, center.y + 1.0, center.z + Math.sin(a) * r, 1, 0, 0.4, 0, 0);
-            }
-        }
     }
 
     // ---------------------------------------------------------------- events
@@ -201,7 +189,7 @@ public final class MatchController {
             if (ev instanceof RoundStarted rs) {
                 onRoundStart(rs.round());
             } else if (ev instanceof ShrinkStarted) {
-                broadcastTitle(Component.literal(""), Component.translatable("neonclash.zone.shrink").withStyle(ChatFormatting.YELLOW), NCSounds.ROUND_END.get());
+                broadcastTitle(Component.literal(""), Component.translatable("neonclash.zone.shrink").withStyle(ChatFormatting.YELLOW), NCSounds.ZONE_WARN.get());
             } else if (ev instanceof RoundEnded re) {
                 onRoundEnd(re);
             } else if (ev instanceof MatchEnded me) {

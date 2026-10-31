@@ -33,15 +33,17 @@ public final class BeamService {
         final EntityKineticBullet bullet;
         final int color;
         final int ownerId;
+        final boolean beat;
         Vec3 last;
         double length;
         @Nullable
         Vec3 hit;
 
-        Tracked(EntityKineticBullet bullet, int color, int ownerId) {
+        Tracked(EntityKineticBullet bullet, int color, int ownerId, boolean beat) {
             this.bullet = bullet;
             this.color = color;
             this.ownerId = ownerId;
+            this.beat = beat;
             this.last = bullet.position();
         }
     }
@@ -65,12 +67,12 @@ public final class BeamService {
         return lastEnd;
     }
 
-    public static void track(EntityKineticBullet bullet) {
+    public static void track(EntityKineticBullet bullet, boolean beat) {
         if (!NCConfig.SERVER.beamEnabled.get()) return;
         Entity owner = bullet.getOwner();
         Combatant c = Combatants.get(owner);
         int color = c != null ? c.teamColor() : NCConfig.parseColor(NCConfig.SERVER.neutralColor.get(), 0xF8F32B);
-        TRACKED.add(new Tracked(bullet, color, owner != null ? owner.getId() : -1));
+        TRACKED.add(new Tracked(bullet, color, owner != null ? owner.getId() : -1, beat));
     }
 
     /** 命中：弾はこの tick の終わりに 1 tick 分先まで進んでしまうので、相手の位置で止める点を覚えておく。 */
@@ -121,7 +123,7 @@ public final class BeamService {
         if (t.last.distanceToSqr(end) < 1.0e-6) return;
         segmentsSent++;
         NCNetwork.sendNear(level, end, NCConfig.SERVER.beamViewDistance.get(), new S2CBeamPacket(
-                t.last.x, t.last.y, t.last.z, end.x, end.y, end.z, t.color, t.ownerId));
+                t.last.x, t.last.y, t.last.z, end.x, end.y, end.z, t.color, t.ownerId, t.beat));
     }
 
     private static Vec3d vec(Vec3 v) {

@@ -13,7 +13,9 @@ import java.util.function.Supplier;
  * <ul>
  *   <li>SHAKE: value=揺れの強さ（度）, ticks=長さ</li>
  *   <li>HIT_STOP: ticks=移動を止める長さ（被弾側）</li>
- *   <li>HIT_CONFIRM / KILL_CONFIRM: クロスヘアのヒットマーカー。extra=連続キル数</li>
+ *   <li>HIT_CONFIRM: クロスヘアのヒットマーカー。extra=S2CFxPacket の BEAT / HEAD</li>
+ *   <li>KILL_CONFIRM: キルマーカーと表示。extra=連続キル数</li>
+ *   <li>HURT: 撃たれた向きの表示。value=撃った相手の方角（度、atan2(dz, dx)）</li>
  *   <li>RANK: extra=新しいランク ordinal, value=1 なら上昇</li>
  *   <li>BEAT_HIT: ビートに乗った行動のフラッシュ</li>
  *   <li>WINDUP: 剣の溜め開始（ticks=溜め時間）。WINDUP_CANCEL: 潰された</li>
@@ -21,7 +23,7 @@ import java.util.function.Supplier;
  * </ul>
  */
 public record S2CFeedbackPacket(Kind kind, float value, int ticks, int extra) {
-    public enum Kind { SHAKE, HIT_STOP, HIT_CONFIRM, KILL_CONFIRM, RANK, BEAT_HIT, WINDUP, WINDUP_CANCEL, PARRY, PARRY_SUCCESS, LAST_STAND, BLINK }
+    public enum Kind { SHAKE, HIT_STOP, HIT_CONFIRM, KILL_CONFIRM, RANK, BEAT_HIT, WINDUP, WINDUP_CANCEL, PARRY, PARRY_SUCCESS, LAST_STAND, BLINK, HURT }
 
     public static S2CFeedbackPacket of(Kind kind) {
         return new S2CFeedbackPacket(kind, 0, 0, 0);
