@@ -265,6 +265,17 @@ public final class NCGameTests {
 
     // ------------------------------------------------------------------ ビーム
 
+    @GameTest(template = ARENA, batch = "neonclash_reload")
+    public static void gunReloadsWithoutAmmoItems(GameTestHelper h) {
+        Husk e = dummy(h, 4.5, 2, 4.5, 0f);
+        var stack = TaczBridge.makeGun(NCConfig.SERVER.handgunId.get(), 0);
+        var gun = (com.tacz.guns.api.item.gun.AbstractGunItem) stack.getItem();
+        h.assertFalse(gun.canReload(e, stack), "弾を持っていなければリロードできない");
+        TaczBridge.refillReserve(stack, NCConfig.SERVER.reserveAmmo.get());
+        h.assertTrue(gun.canReload(e, stack), "予備弾薬があれば手持ちの弾なしでリロードできる");
+        h.succeed();
+    }
+
     /** ヒットストップがノックバックの速度を消さないこと。NoAi のモブは速度が減らないので、そのまま確かめられる。 */
     @GameTest(template = ARENA, batch = "neonclash_knockback")
     public static void gunHitKnocksTargetBack(GameTestHelper h) {

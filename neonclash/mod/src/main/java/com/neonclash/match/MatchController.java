@@ -422,8 +422,14 @@ public final class MatchController {
         if (!hasGun) {
             ItemStack gun = TaczBridge.makeGun(cfg.handgunId.get(), cfg.handgunAmmo.get());
             if (!gun.isEmpty()) sp.getInventory().add(gun);
-            ItemStack ammo = TaczBridge.makeAmmo(cfg.spareAmmoItem.get(), cfg.spareAmmo.get());
+            ItemStack ammo = cfg.reserveAmmo.get() > 0 ? ItemStack.EMPTY : TaczBridge.makeAmmo(cfg.spareAmmoItem.get(), cfg.spareAmmo.get());
             if (!ammo.isEmpty()) sp.getInventory().add(ammo);
+        }
+        if (cfg.reserveAmmo.get() > 0) {
+            // 前のラウンドの銃や、持ち込んだ銃にも持たせる
+            for (ItemStack s : sp.getInventory().items) {
+                TaczBridge.refillReserve(s, cfg.reserveAmmo.get());
+            }
         }
         if (!hasBlade) {
             sp.getInventory().add(new ItemStack(NCItems.NEON_BLADE.get()));

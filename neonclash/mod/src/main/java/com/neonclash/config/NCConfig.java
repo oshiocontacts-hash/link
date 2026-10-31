@@ -153,6 +153,7 @@ public final class NCConfig {
         public final DoubleValue outsideDamagePerSecond;
         public final ConfigValue<String> handgunId;
         public final IntValue handgunAmmo;
+        public final IntValue reserveAmmo;
         public final IntValue spareAmmo;
         public final ConfigValue<String> spareAmmoItem;
         public final BooleanValue friendlyFire;
@@ -306,7 +307,9 @@ public final class NCConfig {
             outsideDamagePerSecond = b.comment("エリア外にいるときのダメージ/秒").defineInRange("outsideDamagePerSecond", 3.0, 0.0, 100.0);
             handgunId = b.comment("配布する TaCZ のハンドガン ID").define("handgunId", "tacz:glock_17");
             handgunAmmo = b.comment("装填数").defineInRange("handgunAmmo", 17, 0, 1000);
-            spareAmmo = b.comment("予備弾薬の個数").defineInRange("spareAmmo", 68, 0, 6400);
+            reserveAmmo = b.comment("銃の中の予備弾薬（手持ちの弾なしでリロードできる。ラウンドごとに補充）。0 なら下の spareAmmo を配る")
+                    .defineInRange("reserveAmmo", 9999, 0, 9999);
+            spareAmmo = b.comment("予備弾薬の個数（reserveAmmo が 0 のときだけ配る）").defineInRange("spareAmmo", 68, 0, 6400);
             spareAmmoItem = b.comment("予備弾薬の TaCZ 弾薬 ID（空なら配らない）").define("spareAmmoId", "tacz:9mm");
             friendlyFire = b.define("friendlyFire", false);
             hudSyncInterval = b.comment("HUD 同期間隔（tick）").defineInRange("hudSyncInterval", 2, 1, 40);

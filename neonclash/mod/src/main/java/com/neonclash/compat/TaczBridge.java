@@ -22,6 +22,7 @@ import com.tacz.guns.api.event.common.EntityKillByGunEvent;
 import com.tacz.guns.api.event.common.GunFireEvent;
 import com.tacz.guns.api.event.server.AmmoHitBlockEvent;
 import com.tacz.guns.api.item.builder.AmmoItemBuilder;
+import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.builder.GunItemBuilder;
 import com.tacz.guns.entity.EntityKineticBullet;
 import net.minecraft.resources.ResourceLocation;
@@ -70,6 +71,14 @@ public final class TaczBridge {
             b.setHeatData(idx.getGunData().hasHeatData());
         });
         return b.build();
+    }
+
+    /** 手持ちの弾薬なしでリロードできるよう、銃に TaCZ の仮想の予備弾薬を持たせる。銃でなければ何もしない。 */
+    public static void refillReserve(ItemStack stack, int amount) {
+        IGun gun = IGun.getIGunOrNull(stack);
+        if (gun != null) {
+            gun.setDummyAmmoAmount(stack, amount);
+        }
     }
 
     public static ItemStack makeAmmo(String ammoId, int count) {
