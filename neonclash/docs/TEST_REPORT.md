@@ -18,7 +18,7 @@ TaCZ は Modrinth から **1.1.8-hotfix2**（Forge 1.20.1、2026-10-02 リリー
 | GameTest（`runGameTestServer`） | **7 件すべて成功**（`All 7 required tests passed`） |
 | 実機起動（Xvfb + Mesa で `runClient`） | **成功**：ワールド生成 → `/pvp practice 3` → 3 ラウンドの試合 → 終了まで自動で通った。mod 由来のエラー・警告なし |
 | HUD の録画 | `neonclash-demo.mp4`（42.7 秒、1280×720、ゲーム内の拍に合わせた BGM 付き）と 3 秒ごとのフレーム |
-| `runServer`（専用サーバー）単体のスモークテスト | 未実施。クライアント内蔵サーバーでのワールド生成と GameTest サーバーの起動は通っている |
+| `runServer`（専用サーバー）単体のスモークテスト | **成功**（2026-10-31、Windows）：ワールド生成まで 8.6 秒で `Done`、`/ERROR` なし。プレイヤーの接続は未確認 |
 | ビルド済み jar | Actions の成果物 `neonclash-demo-media` ブランチの `neonclash-0.1.0.jar`、VM では `core/build/libs/neonclash-core-0.1.0.jar` |
 
 実行コマンド: `./gradlew -Pneonclash.coreOnly=true clean :core:build`（JUnit の XML/HTML は `core/build/test-results/test/`・`core/build/reports/tests/test/`）
