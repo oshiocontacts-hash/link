@@ -20,7 +20,7 @@
 | 剣 | 左クリック（ネオンブレードを持って） | 短い溜め → 斬撃。当たれば一撃キル。溜め中にハンドガンで撃たれると溜めがリセット |
 | ブリンク | 左 Alt | 視線方向に短距離ワープ（2 チャージ）。壁は抜けない。ビートに合わせるとクールダウン短縮 |
 | パリィ | X | 一瞬だけ攻撃を無効化。成功すると相手を短時間スロー＋自分の周りに範囲スロー（弾も遅くなる） |
-| 切り札 | 自動 | ラストスタンド：致命傷を 1 ライフに 1 回だけ耐え、自分以外を 3 秒スロー |
+| 切り札 | 自動 | ラストスタンド：致命傷を 1 ライフに 1 回だけ耐え、自分以外を 1.5 秒スロー |
 | 強化選択 | 1 / 2 / 3 またはクリック | ラウンド間 5 秒。選ばなければランダム |
 
 - 脱落するとそのラウンドは観戦（スペクテイター）。次のラウンドで全員復帰します。
@@ -54,10 +54,10 @@
 | `sword` | `windupTicks`(6) `recoveryTicks`(12) `interruptLockoutTicks`(4) `range`(2.8) `coneDegrees`(45) `lungeVelocity`(0.45) |
 | `feel` | `hitStopTicks`(3) `hitShakeDegrees`(0.8) `killShakeDegrees`(2.0) `shakeTicks`(5) 命中/キル音の音量・ピッチ、`killPitchStep`(0.15) `killMaxPitch`(2.0) `killStreakWindowTicks`(160) パーティクル数・大きさ |
 | `killReward` | `heal`(6.0) `speedTicks`(40) `speedAmplifier`(1) |
-| `slow` | `globalFactor`(0.3) `globalTicks`(10) `parryTargetFactor`(0.4) `parryTargetTicks`(30) `parryZoneRadius`(3.5) `parryZoneFactor`(0.35) `parryZoneTicks`(30) `lastStandFactor`(0.35) `lastStandTicks`(60) `lastStandHealth`(4.0) `clientStrength`(1.0) |
+| `slow` | `globalFactor`(0.3) `globalTicks`(10) `parryTargetFactor`(0.4) `parryTargetTicks`(30) `parryZoneRadius`(3.5) `parryZoneFactor`(0.35) `parryZoneTicks`(30) `lastStandFactor`(0.5) `lastStandTicks`(30) `lastStandHealth`(2.0) `clientStrength`(1.0) |
 | `parry` | `windowTicks`(6) `cooldownTicks`(100) `successCooldownMultiplier`(0.5) |
-| `beat` | `enabled`(true) `bpm`(128) `toleranceMs`(100) `damageBonus`(0.2) `cooldownMultiplier`(0.6) `maxLatencyCompensationMs`(150) `resyncSeconds`(10) |
-| `style` | `thresholds`([100,250,450,700]) `maxPoints`(1000) `points.*`（kill 60 / air_kill 60 / blink_kill 70 / sword_kill 90 / on_beat 10 / parry 40 / damage_taken -50 / death -200） |
+| `beat` | `enabled`(true) `bpm`(128) `toleranceMs`(60) `damageBonus`(0.2) `cooldownMultiplier`(0.6) `maxLatencyCompensationMs`(150) `resyncSeconds`(10) |
+| `style` | `thresholds`([60,160,300,480]) `maxPoints`(1000) `points.*`（kill 60 / air_kill 60 / blink_kill 70 / sword_kill 90 / on_beat 10 / parry 40 / damage_taken -15 / death -60） |
 | `round` | `roundSeconds`(90) `shrinkStartSeconds`(60) `intermissionSeconds`(5) `winsToWin`(3) `maxRounds`(9) `min/maxPlayersPerTeam`(1/4) `arenaRadius`(28) `arenaEndRadius`(8) `spawnOffset`(12) `outsideDamagePerSecond`(3) `handgunId`("tacz:glock_17") `handgunAmmo`(17) `spareAmmoId`("tacz:9mm") `spareAmmo`(68) `friendlyFire`(false) `hudSyncInterval`(2) |
 | `upgrades` | `choices`(3) `distinctCategories`(true) `reductionFloor`(0.25) `pool`（`id\|CATEGORY\|RARITY\|STAT\|value\|stackable` の文字列リスト） `rarityWeights.D..S`（[COMMON,RARE,EPIC,LEGENDARY] の重み） |
 | `colors` | `red`(#FF2E63) `blue`(#00E5FF) `neutral`(#F8F32B) |
@@ -159,7 +159,7 @@ python3 ci/groove.py --duration 90 --beat-json run/demo_beat.json --out bgm.wav 
 13. 範囲スローをどこで使うか仕様に無かったので、**パリィ成功時に自分の周りに張る**（飛んでくる弾が遅くなる）ことにした。確認用に `/pvp slowfield` も用意。
     生き物は移動速度の属性モディファイア（同期される）、弾は速度ベクトルを掛け直し（出たら戻す）。矢など TaCZ 以外の `Projectile` も対象。
 14. 全員スローはラウンド決着キルのみ。1.20.1 にはサーバーの tick 速度変更が無いので「全員・全弾を倍率で遅くする＋全員に演出パケット」で表現。
-15. ラストスタンドの「自分以外が 3 秒スロー」は、アリーナ半径の 2 倍以内の自分以外の全員と、自分以外の弾。踏みとどまった後の体力は config。
+15. ラストスタンドの「自分以外がスロー」は、アリーナ半径の 2 倍以内の自分以外の全員と、自分以外の弾。踏みとどまった後の体力は config。
 16. 時間切れ：生存人数 → 同数なら残り体力の割合の合計 → それも同じなら引き分け。引き分けはどちらにも点が入らず次ラウンド。
     引き分けが続く場合に備えて `maxRounds`（9）で打ち切り、点の多い方の勝ち（同点なら試合も引き分け）。同時全滅も引き分け。
 17. 強化 3 択は「枠をランダム → ランクの重みでレア度 → 枠×レア度から 1 つ」。3 つは別々の枠から出す（`distinctCategories`）。
@@ -167,7 +167,7 @@ python3 ci/groove.py --duration 90 --beat-json run/demo_beat.json --out bgm.wav 
 18. スタイルランクは試合を通して持ち越し（ラウンドごとにリセットしない）。ポイント制で、しきい値・増減はすべて config。
 19. ビートの判定はサーバー時刻（ms）で、プレイヤーの ping/2（上限 150ms）を差し引く。HUD の脈動と拍のクリック音は、
     サーバー時刻に同期したクライアントの時計で鳴らす（サーバー tick の 50ms 刻みに縛られないため）。BPM 変更は直前の拍を基準に切り替えて拍番号を連続させる。
-    猶予の境界ちょうど（±100ms）は猶予内。
+    猶予の境界ちょうどは猶予内。
 20. 移動強化は試合中のプレイヤーだけ（`movement.onlyInMatch`）。剣・ブリンクは試合外でも練習できる。パリィと切り札はプレイヤーは試合中だけ（試合外で `/kill` を耐えるなどを防ぐ）。
 21. ロードアウトはインベントリを消さず、持っていない物だけ足す（他の持ち物を壊さないため）。ゲームモードは試合中 ADVENTURE、終了時に元へ戻す。
 22. 効果音はバニラの音イベントを参照（オリジナル音源を用意できないため）。命中音とキル音は別の音で、キル音は連続キルでピッチが上がる。
@@ -175,3 +175,13 @@ python3 ci/groove.py --duration 90 --beat-json run/demo_beat.json --out bgm.wav 
 24. HUD のレイアウト（px 位置）は調整値ではなく配置なのでコード内に置いた。大きさは `hudScale`、演出の長さ・強さは CLIENT config。
 25. キー：TaCZ が R/G/C/Z/T/O/V/H を使うので、ブリンク=左 Alt、パリィ=X。
 26. GameTest の戦闘者は AI を止めた Husk（日光で燃えない）で代用。試合コントローラはモブも参加者として扱えるようにしてある。
+
+**調整（簡易プレイテストの 3 点）**
+
+シムは実データ（TaCZ の glock_17 は 18 ブロック以内の胴撃ち 7 = 3 発キル）に合わせ、`--stats` で各設定 80 試合を回して比べた。ボットの簡易モデルなので値は傾向として読むこと。
+
+27. **`beat.toleranceMs` 100 → 60。** 偶然ビートに乗る率が 42% → 26%。TaCZ の発射はサーバー tick で処理され判定が最大 50ms 遅れるので、50ms 以下にすると拍ちょうどの入力が外れ得る。60 はその手前で一番厳しい値。
+28. **ラストスタンドは `lastStandTicks` 60 → 30、`lastStandFactor` 0.35 → 0.5、`lastStandHealth` 4 → 2。** 体力だけ下げても変化なし（4 も 2 も次の 1 発で倒れる）。効くのはスローで、発動後にキルを取る率が 39% → 32%、ラウンドを生き残る率が 19% → 15%。
+    **ただし数値だけでは根本解決ではない。** 1 ライフ 1 回の自動発動は変わらない（キルより発動が多いのも同じ）し、剣の一撃も 1 回は耐える。スローを完全に消しても 21% が下限。満足できなければ発動条件のルール変更が必要。
+29. **スタイルは `damage_taken` -50 → -15、`death` -200 → -60、`thresholds` を 60/160/300/480 に。** `damage_taken` だけでは D のままが 81% → 68%。死亡 -200 がキル 3 回分を消すのが主因だったので死亡も緩め、試合が 3〜5 ラウンドで終わることに合わせてしきい値も下げた。強化抽選時のランクは D 81% → 48%、C 27%・B 18%・A 6%。
+30. 既定値の変更は既存のワールドには反映されない。`serverconfig/neonclash-server.toml` が残っているワールドは古い値のままなので、新しいワールドで試すか、その toml を消すこと。

@@ -203,9 +203,9 @@ public final class NCConfig {
             parryZoneRadius = b.comment("パリィ成功時に自分の周りに張る範囲スローの半径（0 で無効）").defineInRange("parryZoneRadius", 3.5, 0.0, 32.0);
             parryZoneFactor = b.defineInRange("parryZoneFactor", 0.35, 0.01, 1.0);
             parryZoneTicks = b.defineInRange("parryZoneTicks", 30, 0, 400);
-            lastStandSlowFactor = b.comment("ラストスタンド発動時、自分以外に掛けるスロー倍率").defineInRange("lastStandFactor", 0.35, 0.01, 1.0);
-            lastStandSlowTicks = b.comment("ラストスタンドのスロー時間（60=3秒）").defineInRange("lastStandTicks", 60, 0, 600);
-            lastStandHealth = b.comment("ラストスタンドで踏みとどまった後の体力").defineInRange("lastStandHealth", 4.0, 0.5, 40.0);
+            lastStandSlowFactor = b.comment("ラストスタンド発動時、自分以外に掛けるスロー倍率").defineInRange("lastStandFactor", 0.5, 0.01, 1.0);
+            lastStandSlowTicks = b.comment("ラストスタンドのスロー時間（30=1.5秒）").defineInRange("lastStandTicks", 30, 0, 600);
+            lastStandHealth = b.comment("ラストスタンドで踏みとどまった後の体力").defineInRange("lastStandHealth", 2.0, 0.5, 40.0);
             slowMoClientStrength = b.comment("クライアント演出（彩度・音程・FOV）の強さ 0..1").defineInRange("clientStrength", 1.0, 0.0, 1.0);
             b.pop();
 
@@ -218,7 +218,7 @@ public final class NCConfig {
             b.comment("ビート（オプション）。外しても罰は無い").push("beat");
             beatEnabled = b.comment("false でビート機能を丸ごとオフ（HUD 表示・ボーナスとも）").define("enabled", true);
             beatBpm = b.defineInRange("bpm", 128.0, 30.0, 300.0);
-            beatToleranceMs = b.comment("判定の猶予（前後, ms）").defineInRange("toleranceMs", 100.0, 0.0, 500.0);
+            beatToleranceMs = b.comment("判定の猶予（前後, ms）").defineInRange("toleranceMs", 60.0, 0.0, 500.0);
             beatDamageBonus = b.comment("ビートに乗った射撃のダメージ増加（0.2=+20%）").defineInRange("damageBonus", 0.2, 0.0, 5.0);
             beatCooldownMultiplier = b.comment("ビートに乗ったブリンクのクールダウン倍率").defineInRange("cooldownMultiplier", 0.6, 0.0, 1.0);
             beatMaxLatencyCompensationMs = b.comment("判定時に差し引く通信遅延（ping/2）の上限").defineInRange("maxLatencyCompensationMs", 150, 0, 1000);
@@ -227,10 +227,10 @@ public final class NCConfig {
 
             b.comment("スタイルランク D→C→B→A→S").push("style");
             styleThresholds = b.comment("C, B, A, S に上がるのに必要なポイント（昇順4つ）")
-                    .defineList("thresholds", List.of(100, 250, 450, 700), o -> o instanceof Integer i && i >= 0);
+                    .defineList("thresholds", List.of(60, 160, 300, 480), o -> o instanceof Integer i && i >= 0);
             styleMaxPoints = b.defineInRange("maxPoints", 1000, 1, 100000);
             b.comment("イベントごとのポイント増減").push("points");
-            int[] defaults = {60, 60, 70, 90, 10, 40, -50, -200};
+            int[] defaults = {60, 60, 70, 90, 10, 40, -15, -60};
             StyleEvent[] events = StyleEvent.values();
             for (int i = 0; i < events.length; i++) {
                 styleDeltas.put(events[i], b.defineInRange(events[i].name().toLowerCase(java.util.Locale.ROOT), defaults[i], -100000, 100000));

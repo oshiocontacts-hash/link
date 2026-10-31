@@ -36,6 +36,7 @@ import java.util.List;
  * 数値は mod の config 既定値と同じ（ラウンド時間・先取数だけ動画用に短縮）。
  *
  * 使い方: javac -cp neonclash-core.jar PlaytestSim.java && java -cp neonclash-core.jar:. PlaytestSim out.mp4
+ * 統計だけ: java -Dsim.seed=1 -cp ... PlaytestSim --stats（動画なしで 1 試合。-Dsim.tolerance=100 などで数値を上書きして比較できる）
  */
 public class PlaytestSim {
     // ---- 動画
@@ -43,6 +44,9 @@ public class PlaytestSim {
     static final double SCALE = 15.0; // px / block
     static final int ARENA = 40;
     static final double OX = W / 2.0 - ARENA * SCALE / 2, OY = 80;
+
+    static double param(String key, double def) { return Double.parseDouble(System.getProperty("sim." + key, Double.toString(def))); }
+    static int[] thresholds(String def) { return Arrays.stream(System.getProperty("sim.thresholds", def).split(",")).mapToInt(Integer::parseInt).toArray(); }
 
     // ---- config 既定値（mod の NCConfig と同じ）
     static final double SPEED = 0.215 * 1.3;     // スプリント相当 × speedMultiplier
@@ -52,19 +56,20 @@ public class PlaytestSim {
     static final double SWORD_RANGE = 2.8, SWORD_CONE = Math.cos(Math.toRadians(45)), LUNGE = 0.45;
     static final int HITSTOP = 3, SHAKE_TICKS = 5;
     static final double HIT_SHAKE = 0.8, KILL_SHAKE = 2.0;
-    static final double GUN_DAMAGE = 5.0, BEAT_BONUS = 0.2, BEAT_CD_MULT = 0.6;
+    // TaCZ の glock_17 の胴撃ち（18 ブロック以内）は 7 = 3 発キル
+    static final double GUN_DAMAGE = param("gunDamage", 7.0), BEAT_BONUS = 0.2, BEAT_CD_MULT = 0.6;
     static final int FIRE_INTERVAL = 7;
     static final double BULLET_SPEED = 3.0;
     static final double KILL_HEAL = 6.0;
     static final int KILL_SPEED_TICKS = 40;
     static final double GLOBAL_SLOW = 0.3; static final int GLOBAL_SLOW_TICKS = 10;
-    static final double LS_FACTOR = 0.35; static final int LS_TICKS = 60; static final double LS_HEALTH = 4.0;
+    static final double LS_FACTOR = param("lsFactor", 0.5); static final int LS_TICKS = (int) param("lsTicks", 30); static final double LS_HEALTH = param("lsHealth", 2.0);
     static final double PARRY_TARGET = 0.4; static final int PARRY_TARGET_TICKS = 30;
     static final ParrySkill.Settings PARRY = new ParrySkill.Settings(6, 100, 0.5);
     static final KillStreak.Settings STREAK = new KillStreak.Settings(160, 0.9f, 0.15f, 2.0f);
-    static final StyleMeter.Settings STYLE = new StyleMeter.Settings(new int[]{100, 250, 450, 700}, 1000, Map.of(
+    static final StyleMeter.Settings STYLE = new StyleMeter.Settings(thresholds("60,160,300,480"), 1000, Map.of(
             StyleEvent.KILL, 60, StyleEvent.AIR_KILL, 60, StyleEvent.BLINK_KILL, 70, StyleEvent.SWORD_KILL, 90,
-            StyleEvent.ON_BEAT, 10, StyleEvent.PARRY, 40, StyleEvent.DAMAGE_TAKEN, -50, StyleEvent.DEATH, -200));
+            StyleEvent.ON_BEAT, (int) param("onBeat", 10), StyleEvent.PARRY, 40, StyleEvent.DAMAGE_TAKEN, (int) param("damageTaken", -15), StyleEvent.DEATH, (int) param("death", -60)));
     // 動画用に短縮：ラウンド 30 秒（20 秒で縮小開始）、ラウンド間 4 秒。先取数は既定どおり 3 本
     static final RoundEngine.Settings ROUND = new RoundEngine.Settings(30 * 20, 20 * 20, 4 * 20, 3, 7);
     static final ArenaZone ZONE = new ArenaZone(19, 6, ROUND.shrinkStartTick(), ROUND.roundTicks());
@@ -105,8 +110,8 @@ public class PlaytestSim {
         return true;
     };
 
-    static final Random RNG = new Random(20261030L);
-    static final BeatClock BEAT = new BeatClock(128, 0, 100, true);
+    static final Random RNG = new Random(Long.getLong("sim.seed", 20261030L));
+    static final BeatClock BEAT = new BeatClock(128, 0, param("tolerance", 60), true);
 
     static final class Bot {
         final String name; final Team team; final UUID id = UUID.randomUUID();
@@ -119,7 +124,7 @@ public class PlaytestSim {
         final KillStreak streak = new KillStreak();
         final UpgradeStats up = new UpgradeStats();
         boolean dead; int hitStop, fireCd, speedBoost, lsSlowOwner, rankPop, deathFlash;
-        long lastBlink = -1000; double slowFactor = 1; int slowTicks;
+        long lastBlink = -1000, lastStandAt = -1; double slowFactor = 1; int slowTicks;
         List<UpgradeDef> offer = List.of(); int chosen = -1;
         boolean aggressiveSword;
         Bot(String n, Team t, boolean sw) { name = n; team = t; aggressiveSword = sw; }
@@ -142,7 +147,8 @@ public class PlaytestSim {
     static final Map<String, Integer> STATS = new TreeMap<>();
     static final List<String> ROUND_LOG = new ArrayList<>();
     static long roundStartTick;
-    static void stat(String k) { STATS.merge(k, 1, Integer::sum); }
+    static void stat(String k) { stat(k, 1); }
+    static void stat(String k, int n) { STATS.merge(k, n, Integer::sum); }
 
     public static void main(String[] args) throws Exception {
         String out = args.length > 0 ? args[0] : "playtest.mp4";
@@ -152,6 +158,15 @@ public class PlaytestSim {
         bots.add(new Bot("BLUE-1", Team.BLUE, true));
         bots.add(new Bot("BLUE-2", Team.BLUE, false));
         engine = new RoundEngine(ROUND, (t, alive) -> bots.stream().filter(b -> alive.contains(b.id)).mapToDouble(b -> b.hp / 20).sum());
+        if ("--stats".equals(out)) {
+            Map<UUID, Team> roster = new LinkedHashMap<>();
+            for (Bot b : bots) roster.put(b.id, b.team);
+            handle(engine.start(roster));
+            while (!matchOver && tick < 20L * 60 * 20) step();
+            for (Bot b : bots) stat("final_" + b.style.rank());
+            STATS.forEach((k, v) -> System.out.println(k + " " + v));
+            return;
+        }
 
         Process ff = new ProcessBuilder("ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "bgr24",
                 "-s", W + "x" + H, "-r", String.valueOf(FPS), "-i", "-", "-vf", "fps=30", "-c:v", "libx264",
@@ -367,6 +382,7 @@ public class PlaytestSim {
             if (victim.lastStand.tryTrigger()) {
                 victim.hp = Math.min(20, LS_HEALTH + victim.up.get(UpgradeStat.LAST_STAND_HEALTH));
                 stat("last_stands");
+                victim.lastStandAt = tick;
                 victim.lsSlowOwner = LS_TICKS + (int) victim.up.get(UpgradeStat.LAST_STAND_DURATION);
                 victim.sword.reset();
                 fx.add(new Fx("text", victim.x, victim.z - 1.6, 0, 0, new Color(0xFFD23F), new int[]{30}, 30, "LAST STAND"));
@@ -386,6 +402,8 @@ public class PlaytestSim {
 
     static void kill(Bot killer, Bot victim, boolean blade) {
         victim.hp = 0; victim.dead = true; victim.deathFlash = 12;
+        if (victim.lastStandAt >= 0) stat("ls_ticks_after", (int) (tick - victim.lastStandAt));
+        if (killer != null && killer.lastStandAt >= 0) stat("ls_kills"); // 切り札で拾った命で取ったキル
         styleApply(victim, StyleEvent.DEATH);
         victim.streak.reset();
         burst(victim.x, victim.z, killer != null ? killer.color() : YELLOW, 40);
@@ -428,7 +446,7 @@ public class PlaytestSim {
                     if (!b.offer.isEmpty() && b.chosen < 0) b.chosen = RNG.nextInt(b.offer.size());
                     if (b.chosen >= 0) { b.up.add(b.offer.get(b.chosen)); }
                     b.offer = List.of(); b.chosen = -1;
-                    b.dead = false; b.hp = 20; b.hitStop = 0; b.slowFactor = 1; b.slowTicks = 0; b.lsSlowOwner = 0;
+                    b.dead = false; b.hp = 20; b.hitStop = 0; b.slowFactor = 1; b.slowTicks = 0; b.lsSlowOwner = 0; b.lastStandAt = -1;
                     int max = 2 + (int) b.up.get(UpgradeStat.BLINK_CHARGES);
                     if (max != b.blink.maxCharges()) b.blink.setMaxCharges(max);
                     b.blink.refill(); b.sword.reset(); b.parry.reset(); b.lastStand.rearm();
@@ -445,9 +463,12 @@ public class PlaytestSim {
             } else if (e instanceof RoundEngine.RoundEnded re) {
                 if (re.reason() == RoundEngine.EndReason.ELIMINATION && !re.decisivePlayers().isEmpty()) globalSlow = GLOBAL_SLOW_TICKS;
                 ROUND_LOG.add(String.format(Locale.ROOT, "round %d: %s by %s in %.1fs", re.round(), re.isDraw() ? "DRAW" : re.winner(), re.reason(), (tick - roundStartTick) / 20.0));
+                stat("rounds"); stat("round_ticks", (int) (tick - roundStartTick));
+                for (Bot b : bots) if (!b.dead && b.lastStandAt >= 0) { stat("ls_survived_round"); stat("ls_ticks_after", (int) (tick - b.lastStandAt)); }
                 banner(re.isDraw() ? "DRAW" : re.winner() + " TAKES THE ROUND", re.isDraw() ? Color.WHITE : (re.winner() == Team.RED ? RED : BLUE), 50);
                 if (engine.phase() == RoundEngine.Phase.INTERMISSION) {
                     for (Bot b : bots) {
+                        stat("offer_" + b.style.rank()); // 強化の抽選に使われるランク
                         Set<String> owned = new HashSet<>();
                         b.up.owned().forEach(d -> owned.add(d.id()));
                         b.offer = UpgradeDraft.draw(POOL, b.style.rank(), WEIGHTS, owned, 3, true, RNG);
