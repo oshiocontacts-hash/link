@@ -1,0 +1,370 @@
+Downloading https://services.gradle.org/distributions/gradle-8.8-bin.zip
+.............10%.............20%.............30%.............40%.............50%.............60%..............70%.............80%.............90%.............100%
+
+Welcome to Gradle 8.8!
+
+Here are the highlights of this release:
+ - Running Gradle on Java 22
+ - Configurable Gradle daemon JVM
+ - Improved IDE performance for large projects
+
+For more details see https://docs.gradle.org/8.8/release-notes.html
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :core:compileJava
+> Task :core:processResources NO-SOURCE
+> Task :core:classes
+> Task :core:jar
+> Task :core:sourcesJar
+> Task :core:assemble
+> Task :core:compileTestJava
+> Task :core:processTestResources NO-SOURCE
+> Task :core:testClasses
+
+> Task :core:test
+
+BeamTrailTest > 銃口へのずらしは遠くで 0 になる PASSED
+
+BeamTrailTest > 区間は fadeTicks で消える PASSED
+
+BeamTrailTest > 先に通った区間から消える（彗星の尾） PASSED
+
+BeamTrailTest > 上限を超えたら古いものから捨てる PASSED
+
+BeamTrailTest > 濃さは 1 から 0 へ線形に減り、範囲外に出ない PASSED
+
+BeamTrailTest > カメラのすぐ近くは薄く細い。0 なら無効 PASSED
+
+BeamTrailTest > ビートの区間は印が付く PASSED
+
+BeamTrailTest > 線分上の最近点：途中・両端の外・長さ 0 PASSED
+
+BeamTrailTest > rejectsBadSettings() PASSED
+
+BeatClockTest > BPM 変更：割り切れない BPM でも誤差が溜まらない PASSED
+
+BeatClockTest > 猶予 0 は拍ちょうどのみ PASSED
+
+BeatClockTest > invalidBpmRejected() PASSED
+
+BeatClockTest > BPM 変更を拍ちょうどの時刻に行うとその拍が基準になる PASSED
+
+BeatClockTest > outsideTolerance(double) > 拍から -100.1ms ずれ → 猶予外 PASSED
+
+BeatClockTest > outsideTolerance(double) > 拍から -101.0ms ずれ → 猶予外 PASSED
+
+BeatClockTest > outsideTolerance(double) > 拍から -249.0ms ずれ → 猶予外 PASSED
+
+BeatClockTest > outsideTolerance(double) > 拍から 101.0ms ずれ → 猶予外 PASSED
+
+BeatClockTest > outsideTolerance(double) > 拍から 100.1ms ずれ → 猶予外 PASSED
+
+BeatClockTest > outsideTolerance(double) > 拍から 249.0ms ずれ → 猶予外 PASSED
+
+BeatClockTest > 境界：拍と拍のちょうど中間は最寄りの拍を選ぶが猶予外 PASSED
+
+BeatClockTest > phaseWrapsEachBeat() PASSED
+
+BeatClockTest > 基準時刻より前（負の相対時刻）でも判定できる PASSED
+
+BeatClockTest > ビートを無効化すると常に猶予外（罰は無いのでボーナス無しになるだけ） PASSED
+
+BeatClockTest > sync でクライアント側の時計を復元できる PASSED
+
+BeatClockTest > BPM 変更：直前の拍を基準に新しい間隔になる。拍番号は連続 PASSED
+
+BeatClockTest > 早押し・遅押しで offset の符号が変わる PASSED
+
+BeatClockTest > 拍ちょうどは猶予内 PASSED
+
+BeatClockTest > insideTolerance(double) > 拍から -100.0ms ずれ → 猶予内 PASSED
+
+BeatClockTest > insideTolerance(double) > 拍から -99.9ms ずれ → 猶予内 PASSED
+
+BeatClockTest > insideTolerance(double) > 拍から -50.0ms ずれ → 猶予内 PASSED
+
+BeatClockTest > insideTolerance(double) > 拍から 50.0ms ずれ → 猶予内 PASSED
+
+BeatClockTest > insideTolerance(double) > 拍から 99.9ms ずれ → 猶予内 PASSED
+
+BeatClockTest > insideTolerance(double) > 拍から 100.0ms ずれ → 猶予内 PASSED
+
+KillStreakTest > 連続キルで音程が上がり、上限で止まる PASSED
+
+KillStreakTest > 間隔が空くとリセット PASSED
+
+KnockbackTest > 水平の速さは上限で止まり、向きは保つ PASSED
+
+KnockbackTest > 落下中でも上向きの力で持ち上がる。上向きの力が無ければ落下はそのまま PASSED
+
+KnockbackTest > 向きの長さや上下の角度に関係なく、水平には strength だけ押す PASSED
+
+KnockbackTest > 連続で持ち上げても上向きの速さは上限まで PASSED
+
+KnockbackTest > 速度に足される PASSED
+
+KnockbackTest > 耐性で弱まり、1 なら動かない。範囲外の値は丸める PASSED
+
+KnockbackTest > 真上からの力は持ち上げだけ PASSED
+
+SwordChargeTest > 溜め中にハンドガン被弾 → 溜めリセット、斬撃は出ない PASSED
+
+SwordChargeTest > 溜め中は二重に溜め始められない PASSED
+
+SwordChargeTest > 溜めが満ちた tick にだけ斬撃が出る PASSED
+
+SwordChargeTest > 溜め中以外の被弾は何もしない（斬撃後の硬直は短縮されない） PASSED
+
+SwordChargeTest > リセット後に溜め直すと最初から溜め直し PASSED
+
+SwordChargeTest > 硬直が終わるまで次の溜めは始められない PASSED
+
+SwordChargeTest > progressRises() PASSED
+
+SwordChargeTest > ロックアウトありなら、潰された直後は溜め直せない PASSED
+
+SwordChargeTest > 硬直 0 なら斬撃直後に IDLE PASSED
+
+FxTest > easeOut は 0..1 で範囲外を丸める PASSED
+
+FxTest > ダメージの文字列：整数はそのまま、端数は 1 桁 PASSED
+
+FxTest > 球面の向きは長さ 1 で、シードが同じなら同じ PASSED
+
+FxTest > 白へ寄せる PASSED
+
+FxTest > 画面上の向き：正面 0、右 +90 度、左 -90 度、背後 ±180 度 PASSED
+
+FxTest > 円錐の向きは半角の中に収まる（斜めの軸・真上の軸） PASSED
+
+FxTest > 直交ベクトルは軸と直交する PASSED
+
+FxTest > 軸が長さ 0 なら球面になる PASSED
+
+SparkTest > 寿命で消える PASSED
+
+SparkTest > 速度で進み、減衰と重力が掛かる PASSED
+
+SparkTest > 上限を超えたら古いものから捨てる PASSED
+
+SparkTest > 明るさは 1 から 0 へ下がる PASSED
+
+SparkTest > rejectsBadLife() PASSED
+
+SparkTest > tick の間を補間する PASSED
+
+BlinkChargesTest > invalidMax() PASSED
+
+BlinkChargesTest > 一度に大量に tick しても正しく回復 PASSED
+
+BlinkChargesTest > progress() PASSED
+
+BlinkChargesTest > 回復中に使っても先頭の回復は進み続ける PASSED
+
+BlinkChargesTest > チャージは1つずつ順番に回復する PASSED
+
+BlinkChargesTest > 2チャージを使い切ると3回目は失敗 PASSED
+
+BlinkChargesTest > refillResets() PASSED
+
+BlinkChargesTest > 満タンなら tick しても増えない PASSED
+
+BlinkChargesTest > 強化で最大チャージが増えると即座に使える PASSED
+
+BlinkChargesTest > 消費時のクールダウン長がそのチャージに使われる（ビートボーナスで短縮） PASSED
+
+BlinkChargesTest > クールダウン 0 は即回復 PASSED
+
+BlinkResolverTest > zeroLookRejected() PASSED
+
+BlinkResolverTest > 薄い（1ブロック）壁でも向こう側に抜けない PASSED
+
+BlinkResolverTest > 持ち上げ量以内の段差は越え、超える段差の手前で止まる PASSED
+
+BlinkResolverTest > 障害物が無ければ全距離進む PASSED
+
+BlinkResolverTest > 壁の手前で止まり、壁を貫通しない PASSED
+
+BlinkResolverTest > 天井に向けても天井にめり込まない PASSED
+
+BlinkResolverTest > 床を見下ろして撃っても床にめり込まず、床に沿って進む PASSED
+
+BlinkResolverTest > 真上が薄い天井でも、持ち上げ補正で天井の上に抜けない PASSED
+
+BlinkResolverTest > 目の前が壁なら失敗（チャージは消費しない想定） PASSED
+
+RoundEngineTest > 時間切れで同数・同体力 → 引き分け（得点なし、次ラウンドへ） PASSED
+
+RoundEngineTest > 全滅させたチームが勝ち、決着キルの脱落者が記録される PASSED
+
+RoundEngineTest > ラウンド間にチームが空になったら相手の勝ちで試合終了 PASSED
+
+RoundEngineTest > 2-2 からでも 3 本目を取った方が勝つ PASSED
+
+RoundEngineTest > 引き分けが続いて maxRounds に達したら点の多い方、同点なら試合も引き分け PASSED
+
+RoundEngineTest > 3 本先取で試合終了 PASSED
+
+RoundEngineTest > 時間切れ：生存人数が多い方が勝ち PASSED
+
+RoundEngineTest > ラウンド外の脱落・二重脱落は無視 PASSED
+
+RoundEngineTest > ArenaZone：60 秒まで一定、そこから 90 秒にかけて線形に縮む PASSED
+
+RoundEngineTest > ラウンドが変わると全員復活、時間もリセット PASSED
+
+RoundEngineTest > 片方のチームが居なければ開始できない PASSED
+
+RoundEngineTest > 時間切れで同数：体力合計が多い方が勝ち PASSED
+
+RoundEngineTest > 同時全滅は引き分け PASSED
+
+RoundEngineTest > 60 秒経過で縮小開始イベント PASSED
+
+SkillsTest > パリィ：受付中の攻撃だけ弾く PASSED
+
+SkillsTest > ラストスタンド：1 ライフに 1 回だけ PASSED
+
+SkillsTest > cooldownBasics() PASSED
+
+SkillsTest > 範囲スロー：内側だけ減速、重なりは強い方、期限で消える PASSED
+
+SkillsTest > パリィ：クールダウン中は使えない。成功でクールダウン短縮 PASSED
+
+StyleMeterTest > 初期は D PASSED
+
+StyleMeterTest > progressToNext() PASSED
+
+StyleMeterTest > rankUpDownHelpers() PASSED
+
+StyleMeterTest > しきい値ちょうどで昇格、1 足りなければ据え置き PASSED
+
+StyleMeterTest > 通常キルだけより、空中・ブリンク直後・剣キルの方が大きく上がる PASSED
+
+StyleMeterTest > 被弾で下がる。ランクを跨げば rankedDown PASSED
+
+StyleMeterTest > D→C→B→A→S と上がる PASSED
+
+StyleMeterTest > 0 未満にも上限超えにもならない PASSED
+
+StyleMeterTest > invalidThresholds() PASSED
+
+UpgradeDraftTest > 所持済みの非スタック強化は出ない。スタック可能なものは出る PASSED
+
+UpgradeDraftTest > 同じシードなら同じ結果 PASSED
+
+UpgradeDraftTest > 重み 0 のレア度は出ない（D ランクで LEGENDARY は出ない） PASSED
+
+UpgradeDraftTest > ランクが高いほど平均レア度が上がる PASSED
+
+UpgradeDraftTest > 枠に重みのあるレア度が無ければその枠の最低レア度 PASSED
+
+UpgradeDraftTest > プール内で ID が重複していても 3 択には 1 回しか出ない PASSED
+
+UpgradeDraftTest > UpgradeStats：加算と倍率変換 PASSED
+
+UpgradeDraftTest > 枠の種類が 3 未満でも distinctCategories で詰まらない PASSED
+
+UpgradeDraftTest > 候補が 3 つ未満なら出せる分だけ PASSED
+
+UpgradeDraftTest > config 文字列のパースと往復 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 1 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 2 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 3 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 4 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 5 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 6 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 7 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 8 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 9 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 10 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 11 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 12 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 13 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 14 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 15 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 16 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 17 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 18 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 19 of 20 PASSED
+
+UpgradeDraftTest > 3 択に重複が無く、枠も重ならない > repetition 20 of 20 PASSED
+
+> Task :core:check
+> Task :core:build
+
+> Task :mod:compileJava
+Setting up MCP environment
+Initializing steps
+Executing steps
+ > Running 'downloadManifest'
+ > Running 'downloadJson'
+ > Running 'downloadClient'
+ > Running 'downloadServer'
+ > Running 'extractServer'
+ > Running 'downloadClientMappings'
+ > Running 'mergeMappings'
+ > Running 'stripClient'
+ > Running 'stripServer'
+ > Running 'merge'
+ > Running 'listLibraries'
+ > Running 'rename'
+Stopping at requested step: /home/runner/.gradle/caches/forge_gradle/mcp_repo/de/oceanlabs/mcp/mcp_config/1.20.1-20230612.114412/joined/rename/output.jar
+[20:16:54] [main/INFO]: Writing debug log file accesstransform.log
+[20:16:54] [main/INFO]: Access Transformer processor running version 8.2.14
+[20:16:54] [main/INFO]: Command line arguments [--inJar, /home/runner/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.3.0/forge-1.20.1-47.3.0-injected.jar, --outJar, /home/runner/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.3.0_mapped_official_1.20.1/forge-1.20.1-47.3.0_mapped_official_1.20.1.jar, --logFile, accesstransform.log, --atFile, /home/runner/work/link/link/neonclash/mod/build/_atJar_4/parent_at.cfg]
+[20:16:54] [main/INFO]: Reading from /home/runner/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.3.0/forge-1.20.1-47.3.0-injected.jar
+[20:16:54] [main/INFO]: Writing to /home/runner/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.3.0_mapped_official_1.20.1/forge-1.20.1-47.3.0_mapped_official_1.20.1.jar
+[20:16:54] [main/INFO]: Transformer file /home/runner/work/link/link/neonclash/mod/build/_atJar_4/parent_at.cfg
+[20:16:54] [main/WARN]: Found existing output jar /home/runner/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.3.0_mapped_official_1.20.1/forge-1.20.1-47.3.0_mapped_official_1.20.1.jar, overwriting
+[20:16:57] [main/INFO]: JAR transformation complete /home/runner/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.3.0_mapped_official_1.20.1/forge-1.20.1-47.3.0_mapped_official_1.20.1.jar
+Creating SRG -> MCP TSRG
+Note: /home/runner/work/link/link/neonclash/mod/src/main/java/com/neonclash/match/MatchController.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :mod:processResources
+> Task :mod:classes
+> Task :mod:jar
+> Task :mod:downloadMcpConfig
+> Task :mod:extractSrg
+> Task :mod:createMcpToSrg
+> Task :mod:reobfJar
+> Task :mod:jarJar SKIPPED
+> Task :mod:reobfJarJar SKIPPED
+> Task :mod:assemble
+> Task :mod:compileTestJava NO-SOURCE
+> Task :mod:processTestResources NO-SOURCE
+> Task :mod:testClasses UP-TO-DATE
+> Task :mod:test NO-SOURCE
+> Task :mod:check UP-TO-DATE
+> Task :mod:build
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/build-1793477700793.json
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.8/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2m 30s
+12 actionable tasks: 12 executed

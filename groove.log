@@ -1,0 +1,11 @@
+aligned to game beat: first beat 0.073s (index 23), downbeat 0.542s
+128 BPM, F minor, bars=39, start=-1.333s (first downbeat at 0.542s)
+  bar   0-  3  intro    hat pad
+  bar   4- 11  groove   kick clap hat ohat bass stab
+  bar  12- 15  build    kick hat bass stab pad arp roll riser
+  bar  16- 23  drop     kick clap hat ohat bass stab pad arp lead
+  bar  24- 27  break    hat pad arp
+  bar  28- 29  build    kick hat bass stab pad arp roll riser
+  bar  30- 34  drop2    kick clap hat ohat bass stab pad arp lead
+  bar  35- 38  outro    kick hat bass pad
+wrote media/neonclash-groove.wav
